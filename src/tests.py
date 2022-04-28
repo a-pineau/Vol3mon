@@ -1,41 +1,63 @@
+# Importing the pygame module
 import pygame
+from pygame.locals import *
+
+# Initiate pygame and give permission
+# to use pygame's functionality
 pygame.init()
 
-win = pygame.display.set_mode((500,500))
-pygame.display.set_caption("First Game")
+# Create a display surface object
+# of specific dimension
+window = pygame.display.set_mode((600, 600))
 
-x = 50
-y = 50
-width = 40
-height = 60
-vel = 5
+# Creating a new clock object to
+# track the amount of time
+clock = pygame.time.Clock()
 
+
+# Creating a new rect for first object
+player_rect = Rect(200, 500, 50, 50)
+
+# Creating a new rect for second object
+player_rect2 = Rect(200, 0, 50, 50)
+
+# Creating variable for gravity
+gravity = 4
+
+# Creating a boolean variable that
+# we will use to run the while loop
 run = True
 
+# Creating an infinite loop
+# to run our game
 while run:
-    pygame.time.delay(100)
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            run = False
+	# Setting the framerate to 60fps
+	clock.tick(60)
 
-    keys = pygame.key.get_pressed()
-    
-    if keys[pygame.K_LEFT] and x > vel:  # Making sure the top left position of our character is greater than our vel so we never move off the screen.
-        x -= vel
+	# Adding gravity in player_rect2
+	player_rect2.bottom += gravity
 
-    if keys[pygame.K_RIGHT] and x < 500 - vel - width:  # Making sure the top right corner of our character is less than the screen width - its width 
-        x += vel
+	# Checking if player is colliding
+	# with platform or not using the
+	# colliderect() method.
+	# It will return a boolean value
+	collide = pygame.Rect.colliderect(player_rect, player_rect2)
 
-    if keys[pygame.K_UP] and y > vel:  # Same principles apply for the y coordinate
-        y -= vel
+	# If the objects are colliding
+	# then changing the y coordinate
+	if collide:
+		player_rect2.bottom = player_rect.top
 
-    if keys[pygame.K_DOWN] and y < 500 - height - vel:
-        y += vel
+	# Drawing player rect
+	pygame.draw.rect(window, (0, 255, 0),
+					player_rect)
+	# Drawing player rect2
+	pygame.draw.rect(window, (0, 0, 255),
+					player_rect2)
 
-    
-    win.fill((0,0,0))
-    pygame.draw.rect(win, (255,0,0), (x, y, width, height))   
-    pygame.display.update() 
-    
-pygame.quit()
+	# Updating the display surface
+	pygame.display.update()
+
+	# Filling the window with white color
+	window.fill((255, 255, 255))

@@ -3,9 +3,9 @@ import pygame
 
 # Main window 
 TITLE = "K@ng_-"
-WIDTH = 1400
-HEIGHT = 800
-FPS = 60
+WIDTH = 1600
+HEIGHT = 900
+FPS = 144
 
 # Directories
 FILE_DIR = os.path.dirname(__file__)
@@ -18,31 +18,35 @@ BLUE = (0, 0, 255)
 RED = (255, 0, 0)
 YELLOW = (255, 255, 0)
 GREEN = (0, 255, 0)
+ORANGE = (255, 127, 0)
 BACKGROUND = (30, 30, 30)
 
 # Net
 NET_WIDTH = 20
 NET_HEIGHT = 250
 
-# Players: https://commons.wikimedia.org/wiki/File:Button_Icon_Blue.svg
-PLAYER_X_SPEED = 10
+# Players:
+PLAYER_X_SPEED = 6
+PLAYER_Y_SPEED = -25
 PLAYER_ACC = 0.5
-PLAYER_FRICTION = -0.0
+PLAYER_FRICTION = -0.02
+PLAYER_GRAVITY = 0.75
 
-SIZE_FACTOR = 0.25
-PLAYER_GREEN = pygame.image.load(
-    os.path.join(IMAGES_DIR, "player_green.png")
-    )
-PLAYER_GREEN = pygame.transform.rotozoom(PLAYER_GREEN, 0, SIZE_FACTOR)  # Adjusting size
-PLAYER_BLUE = pygame.image.load(
-    os.path.join(IMAGES_DIR, "player_blue.png")
-    )
-PLAYER_BLUE = pygame.transform.rotozoom(PLAYER_BLUE, 0, SIZE_FACTOR)  # Adjusting size
+# Ball game:
+BALL_GRAVITY = 0.1
 
-PLAYER_SIZE = PLAYER_GREEN.get_rect().size[0]
+# Images (https://icons-for-free.com/ball-1319987875440295270/)
+BALL_PLAYER_1 = pygame.image.load(
+    os.path.join(IMAGES_DIR, "ball_player_1.png")
+    )
+BALL_PLAYER_1 = pygame.transform.rotozoom(BALL_PLAYER_1, 0, 0.9)  # Adjusting size
+BALL_GAME = pygame.image.load(
+    os.path.join(IMAGES_DIR, "ball_game.png")
+    )
+BALL_GAME = pygame.transform.rotozoom(BALL_GAME, 0, 0.2)  # Adjusting size
 PLAYERS_ID = {
-    "GREEN": PLAYER_GREEN,
-    "BLUE": PLAYER_BLUE,
+    "BALL_PLAYER_1": BALL_PLAYER_1,
+    "BALL_GAME": BALL_GAME,
 }
 
 # # Balls: 
