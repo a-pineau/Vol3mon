@@ -1,63 +1,81 @@
-# Importing the pygame module
 import pygame
-from pygame.locals import *
+import random
+import os
+FILE_DIR = os.path.dirname(__file__)
+class Ball(pygame.sprite.Sprite):
 
-# Initiate pygame and give permission
-# to use pygame's functionality
+    def __init__(self, startpos, velocity, startdir):
+        super().__init__()
+        self.pos = pygame.math.Vector2(startpos)
+        self.velocity = velocity
+        self.dir = pygame.math.Vector2(startdir).normalize()
+        self.image = pygame.image.load(os.path.join(FILE_DIR, "small_ball.png")
+    ).convert_alpha()
+        self.rect = self.image.get_rect(center = (round(self.pos.x), round(self.pos.y)))
+
+    def reflect(self, NV):
+        self.dir = self.dir.reflect(pygame.math.Vector2(NV))
+
+    def update(self):
+        self.pos += self.dir * self.velocity
+        self.rect.center = round(self.pos.x), round(self.pos.y)
+
+        if self.rect.left <= 0:
+            self.reflect((1, 0))
+            self.rect.left = 0
+        if self.rect.right >= 700:
+            self.reflect((-1, 0))
+            self.rect.right = 700
+        if self.rect.top <= 0:
+            self.reflect((0, 1))
+            self.rect.top = 0
+        if self.rect.bottom >= 700:
+            self.reflect((0, -1))
+            self.rect.bottom = 700
+
 pygame.init()
-
-# Create a display surface object
-# of specific dimension
-window = pygame.display.set_mode((600, 600))
-
-# Creating a new clock object to
-# track the amount of time
+window = pygame.display.set_mode((700, 700))
+pygame.display.set_caption('noname')
 clock = pygame.time.Clock()
 
+all_balls = pygame.sprite.Group()
 
-# Creating a new rect for first object
-player_rect = Rect(200, 500, 50, 50)
+start, velocity, direction = (350, 0), 50, (-1, -1)
+ball_1 = Ball(start, velocity, direction)
 
-# Creating a new rect for second object
-player_rect2 = Rect(200, 0, 50, 50)
+start, velocity, direction = (350, 700), 0, (random.random(), random.random())
+ball_2 = Ball(start, velocity, direction)
 
-# Creating variable for gravity
-gravity = 4
+all_balls.add(ball_1, ball_2)
 
-# Creating a boolean variable that
-# we will use to run the while loop
+def reflectBalls(ball_1, ball_2):
+    v1 = pygame.math.Vector2(ball_1.rect.center)
+    v2 = pygame.math.Vector2(ball_2.rect.center)
+    r1 = ball_1.rect.width // 2
+    r2 = ball_2.rect.width // 2
+    d = v1.distance_to(v2)
+    if d < r1 + r2 - 2:
+        dnext = (v1 + ball_1.dir).distance_to(v2 + ball_2.dir)
+        nv = v2 - v1
+        if dnext < d and nv.length() > 0:
+            ball_1.reflect(nv)
+            ball_2.reflect(nv)
+
 run = True
-
-# Creating an infinite loop
-# to run our game
 while run:
+    clock.tick(60)
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            run = False
 
-	# Setting the framerate to 60fps
-	clock.tick(60)
+    all_balls.update()
 
-	# Adding gravity in player_rect2
-	player_rect2.bottom += gravity
+    ball_list = all_balls.sprites()
+    for i, b1 in enumerate(ball_list):
+        for b2 in ball_list[i+1:]:
+            reflectBalls(b1, b2)
 
-	# Checking if player is colliding
-	# with platform or not using the
-	# colliderect() method.
-	# It will return a boolean value
-	collide = pygame.Rect.colliderect(player_rect, player_rect2)
-
-	# If the objects are colliding
-	# then changing the y coordinate
-	if collide:
-		player_rect2.bottom = player_rect.top
-
-	# Drawing player rect
-	pygame.draw.rect(window, (0, 255, 0),
-					player_rect)
-	# Drawing player rect2
-	pygame.draw.rect(window, (0, 0, 255),
-					player_rect2)
-
-	# Updating the display surface
-	pygame.display.update()
-
-	# Filling the window with white color
-	window.fill((255, 255, 255))
+    window.fill(0)
+    pygame.draw.rect(window, (255, 0, 0), (0, 0, 700, 700), 1)
+    all_balls.draw(window)
+    pygame.display.flip()

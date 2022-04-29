@@ -28,9 +28,9 @@ class Game:
         self.all_sprites = pg.sprite.Group()
         self.platforms = pg.sprite.Group()
         # Defining players
-        self.player = Player(self, WIDTH / 4, HEIGHT, "BALL_PLAYER_1")
+        self.player = Player(self, WIDTH / 4, HEIGHT, "BALL_GAME")
         # Defining the ball game
-        self.ball_game = BallGame(self, WIDTH / 2.5, HEIGHT / 3, "BALL_GAME")
+        self.ball_game = BallGame(self, WIDTH / 4, HEIGHT / 4, "BALL_GAME")
         # Defining platforms
         self.p_net = Platform(
             WIDTH / 2, HEIGHT - NET_HEIGHT / 2,
@@ -41,9 +41,9 @@ class Game:
         # Adding to sprite groups
         self.platforms.add(self.p_net, self.p_floor)
         self.all_sprites.add(
+            self.player,
             self.ball_game, 
             self.p_net,  
-            self.p_moving,
             self.p_floor,
         )
     

@@ -33,7 +33,10 @@ PLAYER_FRICTION = -0.02
 PLAYER_GRAVITY = 0.75
 
 # Ball game:
-BALL_GRAVITY = 0.1
+BALL_GRAVITY = 0.05
+
+# MISC
+COLLISION_TOLERANCE = 10
 
 # Images (https://icons-for-free.com/ball-1319987875440295270/)
 BALL_PLAYER_1 = pygame.image.load(

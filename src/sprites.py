@@ -31,6 +31,8 @@ class Player(pg.sprite.Sprite):
         self.game = game
         self.image = PLAYERS_ID[color]
         self.rect = self.image.get_rect()
+        self.radius = int(self.rect.width / 2)
+        pygame.draw.circle(self.image, RED, self.rect.center, self.radius)
         self.pos = vec(x, y)
         self.vel = vec(0, 0)
         self.acc = vec(0, 0)
@@ -62,7 +64,7 @@ class Player(pg.sprite.Sprite):
         # ??
         any_but_current = pg.sprite.Group()
         for element in self.game.all_sprites:
-            if element != self:
+            if element != self and element != self.game.ball_game:
                 any_but_current.add(element)
     
         # x-collisions with platforms
@@ -88,7 +90,7 @@ class Player(pg.sprite.Sprite):
             if self.vel.y > 0:
                 self.rect.bottom = hits[0].rect.top
                 self.pos.y = self.rect.centery
-                self.vel.y = 0
+                self.vel.y *= 0
             # Jumping, hitting bottom of a platform
             elif self.vel.y < 0:
                 self.rect.top = hits[0].rect.bottom
@@ -113,36 +115,58 @@ class Player(pg.sprite.Sprite):
 class BallGame(Player):
     def __init__(self, game, x, y, color):
         super().__init__(game, x, y, color)
-        self.acc = vec(3.5, BALL_GRAVITY)
-        self.vel = vec(6, 6)
+        self.acc = vec(0, BALL_GRAVITY)
+        self.vel = vec(0, 0)
 
-        
     def update(self):        
+        # Updating velocity
+        self.vel += self.acc
+        print(self.vel)
         # Updating x pos
-        self.pos += self.vel
+        self.pos += self.vel + 0.5 * self.acc
         self.rect.center = self.pos
         
-        # Collision with floor/ceiling 
-        if self.rect.top < 0 or self.rect.colliderect(self.game.p_floor):
+        # Collision with floor (need to take gravity into account)
+        if self.rect.bottom > self.game.p_floor.rect.top:
+            self.rect.bottom = self.game.p_floor.rect.top
+            self.pos.y = self.rect.centery
+            self.vel.y *= -1
+        # Collision with ceiling
+        elif self.rect.top < 0:
             self.vel.y *= -1
         # Collision with left/right borders
-        if self.rect.left < 0 or self.rect.right > WIDTH:
+        elif self.rect.left < 0 or self.rect.right > WIDTH:
             self.vel.x *= -1
+            
         # Collision with the net and the moving platform
-        obstacles = pg.sprite.Group()
-        obstacles.add(self.game.p_net, self.game.p_moving)
-        collision_tolerance = 10
+        obstacles = pg.sprite.Group(self.game.p_net)
         hits = pg.sprite.spritecollide(self, obstacles, False)
         if hits:
-            if abs(hits[0].rect.top - self.rect.bottom) < collision_tolerance: # Top collision
-                print(abs(hits[0].rect.top - self.rect.bottom))
+            # The conditions on velocity is used to avoid glitchs when collisions between 2 moving rectangles occur
+            # Top collision
+            if abs(hits[0].rect.top - self.rect.bottom) < COLLISION_TOLERANCE and self.vel.y > 0: 
                 self.vel.y *= -1            
-            if abs(hits[0].rect.bottom - self.rect.top) < collision_tolerance: # Bottom collision
+            # Bottom collision
+            if abs(hits[0].rect.bottom - self.rect.top) < COLLISION_TOLERANCE and self.vel.y < 0: 
                 self.vel.y *= -1
-            if abs(hits[0].rect.right - self.rect.left) < collision_tolerance: # Right collision
+            # Right collision
+            if abs(hits[0].rect.right - self.rect.left) < COLLISION_TOLERANCE and self.vel.x < 0: 
                 self.vel.x *= -1
-            if abs(hits[0].rect.left - self.rect.right) < collision_tolerance: # Left collision
+            # Left collision
+            if abs(hits[0].rect.left - self.rect.right) < COLLISION_TOLERANCE and self.vel.x > 0:
                 self.vel.x *= -1
+        
+        # Collision with players
+        v_ball_game = vec(self.rect.x, self.rect.y)
+        v_player = vec (self.game.player.rect.x, self.game.player.rect.y)
+        r_ball_game = self.radius
+        r_player = self.game.player.radius
+        if pg.sprite.collide_circle(self, self.game.player):
+            if self.rect.bottom > self.game.player.rect.top:
+                self.rect.bottom = self.game.player.rect.top
+                self.pos.y = self.rect.centery
+            new_vec = v_player - v_ball_game
+            self.vel = vec(self.vel.x, self.vel.y).reflect(new_vec)
 
 # --------------------------------------------------------------
 # Platform
