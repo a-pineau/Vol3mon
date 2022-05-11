@@ -3,8 +3,8 @@ import pygame
 
 # Main window 
 TITLE = "K@ng_-"
-WIDTH = 1600
-HEIGHT = 900
+WIDTH = 1000
+HEIGHT = 500
 FPS = 144
 
 # Directories
