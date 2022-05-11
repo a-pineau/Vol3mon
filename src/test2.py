@@ -8,7 +8,6 @@ class Ball(pygame.sprite.Sprite):
         super().__init__()
         self.pos = pygame.math.Vector2(startpos)
         self.velocity = velocity
-        print(self.velocity)
         self.dir = pygame.math.Vector2(startdir).normalize()
         self.image = pygame.image.load(os.path.join(FILE_DIR, "small_ball.png")
     ).convert_alpha()
@@ -41,7 +40,7 @@ clock = pygame.time.Clock()
 
 all_balls = pygame.sprite.Group()
 
-start, velocity, direction = (350, 0), (0, 10), (-1, -1)
+start, velocity, direction = (350, 0), 50, (-1, -1)
 ball_1 = Ball(start, velocity, direction)
 
 start, velocity, direction = (350, 700), 0, (random.random(), random.random())
