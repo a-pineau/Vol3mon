@@ -107,12 +107,6 @@ class Player(pg.sprite.Sprite):
     def jump(self) -> None:  
         if self.standing_on_platform(): # Can only jump on platforms
             self.vel.y = PLAYER_Y_SPEED
-            
-    def ellastic_collision(self, p2):
-        new_velx_p1 = ((self.m -  p2.m) * self.vel.x + 2 * p2.m * p2.vel.x) / (self.m + p2.m)
-        new_velx_p2 = ((2 * self.m * self.vel.x) - (self.m - p2.m) * p2.vel.x) / (self.m + p2.m)
-        self.vel.x = new_velx_p1
-        p2.vel.x = new_velx_p2
         
     def ball_collision(self, p2):
         if self.vel.x > 0:
@@ -179,10 +173,28 @@ class BallGame(Player):
         # Collision with players
         hits = pg.sprite.spritecollide(self, self.game.players, False, pg.sprite.collide_circle)
         if hits:
-            if hits[0].vel.x == 0:
-                self.vel.x *= -1
-            else:
-                self.ellastic_collision(hits[0])
+            self.elastic_collision(hits[0])
+                
+    def elastic_collision(self, p2):
+        # Sake of simplicity
+        p1 = self
+        dx, dy = p1.pos.x - p2.pos.x, p1.pos.y - p2.pos.y
+        x1, x2 = p1.pos, p2.pos 
+        angle = 0.5 * math.pi + math.atan2(dy, dx)
+        m1, m2 = p1.radius**2, p2.radius**2
+        M = m1 + m2
+        v1, v2 = p1.vel, p2.vel
+        # The distance has already been computed, can simplify here
+        d = pg.math.Vector2.magnitude_squared(x1 - x2)
+        
+        # New velocity
+        self.vel = v1 - 2*m2 / M * pg.math.Vector2.dot(v1 - v2, x1 - x2) * (x1 - x2) / d
+        
+        # Dealing with sticking collision (numerical issues)
+        p1.pos.x += math.sin(angle)
+        p1.pos.y -= math.cos(angle)
+        p2.pos.x -= math.sin(angle)
+        p2.pos.y += math.cos(angle)
         
 
 # --------------------------------------------------------------

@@ -40,10 +40,11 @@ class Game:
         self.p_moving = Platform( 
             WIDTH / 2, 200, NET_WIDTH, 150, BLUE, 0, 0.75, self)
         # Adding to sprite groups
-        self.balls.add(self.ball_game)
+        # self.balls.add(self.ball_game)
         self.players.add(self.player)
+        self.platforms.add(self.p_net)
         self.all_sprites.add(
-            self.ball_game,
+            self.p_net,
             self.player,
         )
     

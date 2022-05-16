@@ -5,7 +5,7 @@ import pygame
 TITLE = "K@ng_-"
 WIDTH = 1600
 HEIGHT = 900
-FPS = 144
+FPS = 60
 
 # Directories
 FILE_DIR = os.path.dirname(__file__)
@@ -22,7 +22,7 @@ ORANGE = (255, 127, 0)
 BACKGROUND = (30, 30, 30)
 
 # Net
-NET_WIDTH = 20
+NET_WIDTH = 200
 NET_HEIGHT = 250
 
 # Players:
@@ -33,7 +33,7 @@ PLAYER_FRICTION = -0.02
 PLAYER_GRAVITY = 0.3
 
 # Ball game:
-BALL_GRAVITY = 0.7
+BALL_GRAVITY = 0.1
 BALL_FRICTION = 1
 
 # MISC
