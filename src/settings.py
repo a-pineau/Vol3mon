@@ -1,18 +1,20 @@
 import os
-import pygame
+import pygame as pg
+
+vec = pg.math.Vector2
 
 # Main window 
-TITLE = "K@ng_-"
-WIDTH = 1000
-HEIGHT = 500
-FPS = 144
+TITLE = "v0lem0n"
+WIDTH = 1200
+HEIGHT = 600
+FPS = 60
 
 # Directories
 FILE_DIR = os.path.dirname(__file__)
 IMAGES_DIR = os.path.join(FILE_DIR, "../imgs")
-SNAP_FOLDER = "snapshots"
+SNAP_FOLDER = os.path.join(FILE_DIR, "snapshots")
 
-# Colours
+# Colors
 WHITE = (255, 255, 255)
 BLUE = (0, 0, 255)
 RED = (255, 0, 0)
@@ -21,42 +23,93 @@ GREEN = (0, 255, 0)
 ORANGE = (255, 127, 0)
 BACKGROUND = (30, 30, 30)
 
-# Net
-NET_WIDTH = 20
-NET_HEIGHT = 250
-
-# Players:
-PLAYER_X_SPEED = 10
-PLAYER_Y_SPEED = -15
-PLAYER_ACC = 0.5
-PLAYER_FRICTION = -0.02
+# Player
+PLAYER_X_SPEED = 6 # ?
+PLAYER_Y_SPEED = -13 # ?
 PLAYER_GRAVITY = 0.3
+PLAYER_COLOR = RED
+PLAYER_JUMP_TOLERANCE = 10
+PLAYER_RADIUS = 50
+PLAYER_INIT_X = WIDTH * 0.25
+PLAYER_INIT_Y = HEIGHT - PLAYER_RADIUS
+PLAYER_INIT_VEL = vec(0, 0)
+PLAYER_INIT_ACC = vec(0, PLAYER_GRAVITY)
+PLAYER_SETTINGS = [
+    PLAYER_RADIUS,
+    PLAYER_INIT_X,
+    PLAYER_INIT_Y,
+    PLAYER_INIT_VEL,
+    PLAYER_INIT_ACC,
+    PLAYER_COLOR,
+]
 
-# Ball game:
-BALL_GRAVITY = 0.7
-BALL_FRICTION = 1
+# Bot
+BOT_X_SPEED = PLAYER_X_SPEED
+BOT_RADIUS = PLAYER_RADIUS
+BOT_INIT_X = WIDTH - BOT_RADIUS
+BOT_INIT_Y = HEIGHT - BOT_RADIUS
+BOT_INIT_VEL = vec(0, 0)
+BOT_INIT_ACC = vec(0, PLAYER_GRAVITY)
+BOT_COLOR = BLUE
+BOT_SETTINGS = [
+    BOT_RADIUS,
+    BOT_INIT_X,
+    BOT_INIT_Y,
+    BOT_INIT_VEL,
+    BOT_INIT_ACC,
+    BOT_COLOR,
+]
+
+# Ball game
+BALL_GAME_X_ELASTICITY = 8
+BALL_GAME_GRAVITY = 0.1
+BALL_GAME_RADIUS = 45
+BALL_GAME_INIT_X = PLAYER_INIT_X # Human player always starts
+BALL_GAME_INIT_Y = 2 * BALL_GAME_RADIUS
+BALL_GAME_INIT_VEL = vec(0, 0)
+BALL_GAME_INIT_ACC = vec(0, PLAYER_GRAVITY)
+BALL_GAME_COLOR = YELLOW
+BALL_GAME_SETTINGS = [
+    BALL_GAME_RADIUS,
+    BALL_GAME_INIT_X,
+    BALL_GAME_INIT_Y,
+    BALL_GAME_INIT_VEL,
+    BALL_GAME_INIT_ACC,
+    BALL_GAME_COLOR,
+]
+
+# Net
+NET_HEIGHT = 200
+NET_POS_X = WIDTH * 0.5
+NET_POS_Y = HEIGHT - NET_HEIGHT * 0.5
+NET_WIDTH = 20
+NET_COLOR = WHITE
+NET_VEL = vec(0, 0)
+NET_SETTINGS = [
+    NET_POS_X,
+    NET_POS_Y,
+    NET_WIDTH,
+    NET_HEIGHT,
+    NET_COLOR,
+    NET_VEL,
+]
+
+# MESSAGES
+# Start round
+START_ROUND_MSG = "Hit the spacebar to start"
+START_ROUND_FONT_SIZE = 35
+START_ROUND_COLOR = WHITE
+START_ROUND_POSITION = WIDTH * 0.5, HEIGHT * 0.5
+START_ROUND_SETTINGS = [
+    START_ROUND_MSG,
+    START_ROUND_FONT_SIZE,
+    START_ROUND_COLOR,
+    START_ROUND_POSITION
+]
+
 
 # MISC
 COLLISION_TOLERANCE = 10
 
-# Images (https://icons-for-free.com/ball-1319987875440295270/)
-BALL_PLAYER_1 = pygame.image.load(
-    os.path.join(IMAGES_DIR, "ball_player_1.png")
-    )
-BALL_PLAYER_1 = pygame.transform.rotozoom(BALL_PLAYER_1, 0, 0.9)  # Adjusting size
-BALL_GAME = pygame.image.load(
-    os.path.join(IMAGES_DIR, "ball_game.png")
-    )
-BALL_GAME = pygame.transform.rotozoom(BALL_GAME, 0, 0.2)  # Adjusting size
-PLAYERS_ID = {
-    "BALL_PLAYER_1": BALL_PLAYER_1,
-    "BALL_GAME": BALL_GAME,
-}
 
-# # Balls: 
-# # Ball_1: https://www.flaticon.com/fr/icone-gratuite/volley-ball_184093
-# BALL_1 = pygame.image.load(
-#     os.path.join(IMAGES_DIR, "ball_1.png")
-#     ).convert_alpha()
-# BALL_1 = pygame.transform.rotozoom(BALL_1, 0, SIZE_FACTOR) 
 

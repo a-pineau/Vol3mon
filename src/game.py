@@ -5,10 +5,13 @@ import random
 import pygame as pg
 import math
 
-from sprites import Player, BallGame, Platform
+from itertools import cycle
+from sprites import Ball, Bot, Obstacle
 from settings import *
 from os.path import join, dirname, abspath
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QGridLayout, QWidget, QLayout)
+
+vec = pg.math.Vector2
 
 # Manually places the window
 os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (100, 100)
@@ -20,63 +23,180 @@ class Game:
         self.screen = pg.display.set_mode([WIDTH, HEIGHT])
         pg.display.set_caption(TITLE)
         self.clock = pg.time.Clock()
-        self.running = True
+        self.running = True  
+        self.start_round = False
+        self.n_frame = 0
+        self.scores = {"Player": 0, "Bot": 0}
+        self.msg = [
+
+        ]
     
     def new(self):
         # Start a new game
+        # Folder where the imgs are saved
+        try:
+            os.makedirs(SNAP_FOLDER)
+        except FileExistsError:
+            print(f"Folder \"{SNAP_FOLDER}\" already exists. Ignoring.")
+        if os.path.isdir(SNAP_FOLDER):
+            for file_name in os.listdir(SNAP_FOLDER):
+                file = os.path.join(SNAP_FOLDER, file_name)
+                os.remove(file)
         # Defining sprite groups
         self.balls = pg.sprite.Group()
         self.players = pg.sprite.Group()
-        self.platforms = pg.sprite.Group()
+        self.obstacles = pg.sprite.Group()
         self.all_sprites = pg.sprite.Group()
-
-        # Defining balls
-        self.player = Player(self, WIDTH / 4, HEIGHT, "BALL_PLAYER_1") # Player 1
-        self.ball_game = BallGame(self, WIDTH / 4, HEIGHT / 2, "BALL_GAME", (0, 0)) # Ball game
-        # Defining platforms
-        self.p_net = Platform(
-            WIDTH / 2, HEIGHT - NET_HEIGHT / 2,
-            NET_WIDTH, NET_HEIGHT, GREEN, 0, 0)
-        self.p_moving = Platform( 
-            WIDTH / 2, 200, NET_WIDTH, 150, BLUE, 0, 0.75, self)
+        # Defining sprites
+        self.player = Ball(self, *PLAYER_SETTINGS) # Player
+        self.bot = Bot(self, *BOT_SETTINGS) # Bot
+        self.ball_game = Ball(self, *BALL_GAME_SETTINGS)
+        self.net = Obstacle(self, *NET_SETTINGS) # Net
+        # self.moving = Obstacle(self, *TODO) # Moving platform
         # Adding to sprite groups
-        self.balls.add(self.ball_game)
+        self.balls.add(self.player, self.bot, self.ball_game)
         self.players.add(self.player)
-        self.all_sprites.add(
-            self.ball_game,
-            self.player,
-        )
+        self.obstacles.add(self.net)
     
     def run(self):
         # Game loop
         self.playing = True
-        self.round_over = False
+        ball_game_init = cycle([PLAYER_INIT_X, BOT_INIT_X])
         while self.playing: 
+            self.n_frame += 1
             self.clock.tick(FPS)
             self.events()
-            self.update()
+            self.update(ball_game_init) 
             self.display()
     
-    def update(self):
+    def update(self, ball_game_init):
         # Game loop update
-        self.all_sprites.update()
-
+        if self.start_round:
+            self.balls.update()
+            self.obstacles.update()
+            self.handle_collisions()
+            for sprite in self.balls.sprites():
+                if sprite.end_round_conditions():
+                    self.start_round = False
+                    self.initialize_round(next(ball_game_init))
+                    return None
+                    
     def events(self):
         # Game loop - events
-        # print(pg.mouse.get_pos())
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 if self.playing:
                     self.playing = False
                 self.running = False
-            if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
-                self.player.jump()
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_SPACE:
+                    if self.start_round:
+                        self.player.jump()
+                    else:
+                        self.start_round = True
+
+    def initialize_round(self, ball_init_x):
+        """
+        TODO
+        """
+        # Player
+        self.player.pos.x = PLAYER_INIT_X
+        self.player.pos.y = PLAYER_INIT_Y
+        self.player.vel = vec(0, 0)
+        # Bot
+        self.bot.pos.x = BOT_INIT_X
+        self.bot.pos.y = BOT_INIT_Y
+        self.bot.vel = vec(0, 0)
+        # Ball game
+        self.ball_game.pos.x = ball_init_x
+        self.ball_game.pos.y = BALL_GAME_INIT_Y
+        self.ball_game.vel = vec(0, 0)
+         
+    def elastic_collisions(self, p1, p2):
+        x1, x2 = p1.pos, p2.pos 
+        m1, m2 = p1.r**2, p2.r**2
+        M = m1 + m2
+        R = p1.r + p2.r 
+        v1, v2 = p1.vel, p2.vel
+        # The distance has already been computed, can simplify here
+        d = pg.math.Vector2.magnitude(x1 - x2)
+        disp = (d - R) * 0.5
+        n = vec(x2[0] - x1[0], x2[1] - x1[1])  
+        # Computing new velocities
+        n_v1 = v1 - 2*m2 / M * vec.dot(v1 - v2, x1 - x2) * (x1 - x2) / d**2
+        n_v2 = v2 - 2*m1 / M * vec.dot(v2 - v1, x2 - x1) * (x2 - x1) / d**2
+        p1.vel = n_v1
+        p2.vel = n_v2
+        # Dealing with sticky collisions issues
+        # p1.pos.x += disp * (n.x / d)
+        # p1.pos.y += disp * (n.y / d)
+        p2.pos.x -= disp * (n.x / d) 
+        p2.pos.y -= disp * (n.y / d)
+
+    def handle_collisions(self):
+        # Collisions handler
+        particles = self.balls.sprites()
+        for i, p in enumerate(particles):
+            for other in particles[i+1:]:
+                if not p.is_standing() and not other.is_standing():
+                    if p.circle_2_circle_overlap(other):
+                        self.elastic_collisions(p, other)
                     
     def display(self):
-        # Game loop - display
+        """
+        TODO
+        """
         self.screen.fill(BACKGROUND)
-        self.all_sprites.draw(self.screen)
+        self.obstacles.draw(self.screen)
+        if not self.start_round:
+            self.display_message(self.screen, *START_ROUND_SETTINGS)
+        self.display_infos()
+        pg.draw.circle(self.screen, self.player.color, self.player.pos, self.player.r)
+        pg.draw.circle(self.screen, self.ball_game.color, self.ball_game.pos, self.ball_game.r)
+        pg.draw.circle(self.screen, self.bot.color, self.bot.pos, self.bot.r)
+        # for pos in self.ball_game.trajectory:
+        #     pg.draw.circle(self.screen, ORANGE, pos, 2)
         pg.display.flip()
+
+    def display_infos(self):
+        """
+        TODO
+        """
+        # FPS (top-right)
+        n_fps = int(self.clock.get_fps())
+        font_FPS = pg.font.SysFont("Calibri", 30)
+        fps_text = font_FPS.render(f"FPS: {n_fps}", True, WHITE)
+        fps_text_rect = fps_text.get_rect()
+        fps_text_rect.centerx = 60
+        fps_text_rect.top = 5
+        # Current score (top-center)
+        score_player, score_bot = self.scores["Player"], self.scores["Bot"]
+        font_scores = pg.font.SysFont("Calibri", 50)
+        scores_text = font_scores.render(
+            f"{score_player}   -   {score_bot}", 
+            True, 
+            WHITE)
+        scores_text_rect = fps_text.get_rect()
+        scores_text_rect.centerx = WIDTH / 2
+        scores_text_rect.top = 5
+        # Drawing to screen
+        self.screen.blit(fps_text, fps_text_rect)
+        self.screen.blit(scores_text, scores_text_rect)
+
+    @staticmethod
+    def display_message(screen, message, font_size, color, position):
+        """
+        TODO
+        """
+        font = pg.font.SysFont("Calibri", font_size)
+        text = font.render(message, True, color)
+        text_rect = text.get_rect()
+        text_rect.centerx, text_rect.top = position
+        screen.blit(text, text_rect)
+
+    def save_results(self, extension="png") -> None:
+        file_name = f"snapshot_{self.n_frame}.{extension}"
+        pg.image.save(self.screen, os.path.join(SNAP_FOLDER, file_name))
 
 
 def main():
@@ -84,7 +204,6 @@ def main():
     while g.running:
         g.new()
         g.run()
-    
     pg.quit()
 
 if __name__ == "__main__":

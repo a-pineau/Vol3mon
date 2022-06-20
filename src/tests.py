@@ -1,82 +1,124 @@
 import pygame
 import random
-import os
-FILE_DIR = os.path.dirname(__file__)
-class Ball(pygame.sprite.Sprite):
+import math
+import numpy as np
 
-    def __init__(self, startpos, velocity, startdir):
-        super().__init__()
-        self.pos = pygame.math.Vector2(startpos)
-        self.velocity = velocity
-        print(self.velocity)
-        self.dir = pygame.math.Vector2(startdir).normalize()
-        self.image = pygame.image.load(os.path.join(FILE_DIR, "small_ball.png")
-    ).convert_alpha()
-        self.rect = self.image.get_rect(center = (round(self.pos.x), round(self.pos.y)))
+width, height = 700, 450
+screen = pygame.display.set_mode((width, height))
+particles = []
+no_particles = 100
+tick_speed = 200
 
-    def reflect(self, NV):
-        self.dir = self.dir.reflect(pygame.math.Vector2(NV))
+class Particle:
+    def __init__(self, x, y, r):
+        self.r = r
+        self.pos = np.array([x, y])
+        self.vel = np.array([random.uniform(-0.5, 0.5), random.uniform(-0.5, 0.5)])
+        self.acc = np.array([0, 0]) #tick_speed/(tick_speed * 10)
 
-    def update(self):
-        self.pos += self.dir * self.velocity
-        self.rect.center = round(self.pos.x), round(self.pos.y)
+    def display(self):
+        pygame.draw.circle(screen, (227, 53, 15), (int(self.pos[0]), int(self.pos[1])), self.r, 1)
 
-        if self.rect.left <= 0:
-            self.reflect((1, 0))
-            self.rect.left = 0
-        if self.rect.right >= 700:
-            self.reflect((-1, 0))
-            self.rect.right = 700
-        if self.rect.top <= 0:
-            self.reflect((0, 1))
-            self.rect.top = 0
-        if self.rect.bottom >= 700:
-            self.reflect((0, -1))
-            self.rect.bottom = 700
+    def move(self):
+        self.vel = self.vel + self.acc 
+        self.pos = self.pos + self.vel
+            
+    def bounce(self):
+        if self.pos[1] > height - self.r:
+            self.pos[1] = 2*(height - self.r) - self.pos[1]
+            self.vel[1] = -self.vel[1]
 
-pygame.init()
-window = pygame.display.set_mode((700, 700))
-pygame.display.set_caption('noname')
+        elif self.pos[1] < self.r:
+            self.pos[1] = 2*self.r - self.pos[1]
+            self.vel[1] = -self.vel[1]
+
+        if self.pos[0] + self.r > width:
+            self.pos[0] = 2*(width - self.r) - self.pos[0]            
+            self.vel[0] = -self.vel[0]
+            
+        elif self.pos[0] < self.r:
+            self.pos[0] = 2*self.r - self.pos[0]
+            self.vel[0] = -self.vel[0]
+
+    @classmethod
+    def resolveStatically(cls, n, dc, p1, p2):
+          displacement = (dc - p1.r - p2.r) * 0.5
+          p1.pos[0] += displacement * (n[0] / dc)
+          p1.pos[1] += displacement * (n[1] / dc)
+          p2.pos[0] -= displacement * (n[0] / dc)
+          p2.pos[1] -= displacement * (n[1] / dc)
+            
+    @classmethod
+    def collision(cls, p1, p2):
+        dc = math.hypot((p1.pos[0]-p2.pos[0]), (p1.pos[1]-p2.pos[1]))
+        if dc <= p1.r + p2.r:
+            x1, y1 = p1.pos[0], p1.pos[1]
+            x2, y2 = p2.pos[0], p2.pos[1]
+            m1, m2 = p1.r**2, p2.r**2
+            
+            n = np.array([x2-x1, y2-y1])
+            cls.resolveStatically(n, dc, p1, p2)
+            
+            un = n / np.linalg.norm(n)
+            ut = np.array([-un[1], un[0]])
+            
+            v1 = p1.vel
+            v2 = p2.vel
+
+            v1n = np.dot(un, v1)
+            v1t = np.dot(ut, v1)
+
+            v2n = np.dot(un, v2)
+            v2t = np.dot(ut, v2)
+
+            v1n_prime_s = (v1n * (m1 - m2) + 2*m2*v2n) / (m1 + m2)
+            v2n_prime_s = (v2n * (m2 - m1) + 2*m1*v1n) / (m1 + m2)
+             
+            v1n_prime = v1n_prime_s * un
+            v1t_prime = v1t * ut
+
+            v2n_prime = v2n_prime_s * un
+            v2t_prime = v2t * ut
+            
+            u1 = v1n_prime + v1t_prime 
+            u2 = v2n_prime + v2t_prime
+            p1.vel = u1
+            p2.vel = u2
+
+            
+while len(particles) < no_particles:
+    r = random.randint(10, 20)
+    x = random.randint(r, width-r)
+    y = random.randint(r, height-r)
+    collide = False
+    for particle in particles:
+        d = (particle.pos[0] - x)**2 + (particle.pos[1] - y)**2
+        if d < (r + particle.r)**2:
+            collide = True
+            break
+        
+    if not collide:
+        particles.append(Particle(x, y, random.randint(10, 20)))
+        
+          
+running = True
 clock = pygame.time.Clock()
-
-all_balls = pygame.sprite.Group()
-
-start, velocity, direction = (350, 0), (0, 10), (-1, -1)
-ball_1 = Ball(start, velocity, direction)
-
-start, velocity, direction = (350, 700), 0, (random.random(), random.random())
-ball_2 = Ball(start, velocity, direction)
-
-all_balls.add(ball_1, ball_2)
-
-def reflectBalls(ball_1, ball_2):
-    v1 = pygame.math.Vector2(ball_1.rect.center)
-    v2 = pygame.math.Vector2(ball_2.rect.center)
-    r1 = ball_1.rect.width // 2
-    r2 = ball_2.rect.width // 2
-    d = v1.distance_to(v2)
-    if d < r1 + r2 - 2:
-        dnext = (v1 + ball_1.dir).distance_to(v2 + ball_2.dir)
-        nv = v2 - v1
-        if dnext < d and nv.length() > 0:
-            ball_1.reflect(nv)
-            ball_2.reflect(nv)
-
-run = True
-while run:
-    clock.tick(60)
+while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            run = False
+            running = False
+            
+    screen.fill((255, 255, 255))
 
-    all_balls.update()
-
-    ball_list = all_balls.sprites()
-    for i, b1 in enumerate(ball_list):
-        for b2 in ball_list[i+1:]:
-            reflectBalls(b1, b2)
-
-    window.fill(0)
-    pygame.draw.rect(window, (255, 0, 0), (0, 0, 700, 700), 1)
-    all_balls.draw(window)
+    for i in range(len(particles)):
+        particles[i].move()
+        particles[i].bounce()
+        for j in range(i + 1, len(particles)):
+            particles[i].collision(particles[i], particles[j])
+        particles[i].display() 
+            
     pygame.display.flip()
+    clock.tick(tick_speed)
+
+pygame.quit()
+quit()
