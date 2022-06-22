@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (QMainWindow, QApplication, QGridLayout, QWidget, QL
 vec = pg.math.Vector2
 
 # Manually places the window
-os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (100, 100)
+os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (100, 0)
 
 class Game:
     def __init__(self) -> None:
@@ -27,9 +27,6 @@ class Game:
         self.start_round = False
         self.n_frame = 0
         self.scores = {"Player": 0, "Bot": 0}
-        self.msg = [
-
-        ]
     
     def new(self):
         # Start a new game
@@ -51,6 +48,7 @@ class Game:
         self.player = Ball(self, *PLAYER_SETTINGS) # Player
         self.bot = Bot(self, *BOT_SETTINGS) # Bot
         self.ball_game = Ball(self, *BALL_GAME_SETTINGS)
+        self.ball_game.trajectory = []
         self.net = Obstacle(self, *NET_SETTINGS) # Net
         # self.moving = Obstacle(self, *TODO) # Moving platform
         # Adding to sprite groups
@@ -61,7 +59,7 @@ class Game:
     def run(self):
         # Game loop
         self.playing = True
-        ball_game_init = cycle([PLAYER_INIT_X, BOT_INIT_X])
+        ball_game_init = cycle([BOT_INIT_X, PLAYER_INIT_X])
         while self.playing: 
             self.n_frame += 1
             self.clock.tick(FPS)
@@ -74,7 +72,6 @@ class Game:
         if self.start_round:
             self.balls.update()
             self.obstacles.update()
-            self.handle_collisions()
             for sprite in self.balls.sprites():
                 if sprite.end_round_conditions():
                     self.start_round = False
@@ -107,41 +104,14 @@ class Game:
         self.bot.pos.x = BOT_INIT_X
         self.bot.pos.y = BOT_INIT_Y
         self.bot.vel = vec(0, 0)
+        self.bot.ball_landing_point = None
+        self.bot.direction = 0
         # Ball game
         self.ball_game.pos.x = ball_init_x
         self.ball_game.pos.y = BALL_GAME_INIT_Y
         self.ball_game.vel = vec(0, 0)
-         
-    def elastic_collisions(self, p1, p2):
-        x1, x2 = p1.pos, p2.pos 
-        m1, m2 = p1.r**2, p2.r**2
-        M = m1 + m2
-        R = p1.r + p2.r 
-        v1, v2 = p1.vel, p2.vel
-        # The distance has already been computed, can simplify here
-        d = pg.math.Vector2.magnitude(x1 - x2)
-        disp = (d - R) * 0.5
-        n = vec(x2[0] - x1[0], x2[1] - x1[1])  
-        # Computing new velocities
-        n_v1 = v1 - 2*m2 / M * vec.dot(v1 - v2, x1 - x2) * (x1 - x2) / d**2
-        n_v2 = v2 - 2*m1 / M * vec.dot(v2 - v1, x2 - x1) * (x2 - x1) / d**2
-        p1.vel = n_v1
-        p2.vel = n_v2
-        # Dealing with sticky collisions issues
-        # p1.pos.x += disp * (n.x / d)
-        # p1.pos.y += disp * (n.y / d)
-        p2.pos.x -= disp * (n.x / d) 
-        p2.pos.y -= disp * (n.y / d)
-
-    def handle_collisions(self):
-        # Collisions handler
-        particles = self.balls.sprites()
-        for i, p in enumerate(particles):
-            for other in particles[i+1:]:
-                if not p.is_standing() and not other.is_standing():
-                    if p.circle_2_circle_overlap(other):
-                        self.elastic_collisions(p, other)
-                    
+        self.ball_game.trajectory.clear()
+                             
     def display(self):
         """
         TODO
@@ -154,9 +124,9 @@ class Game:
         pg.draw.circle(self.screen, self.player.color, self.player.pos, self.player.r)
         pg.draw.circle(self.screen, self.ball_game.color, self.ball_game.pos, self.ball_game.r)
         pg.draw.circle(self.screen, self.bot.color, self.bot.pos, self.bot.r)
-        # for pos in self.ball_game.trajectory:
-        #     pg.draw.circle(self.screen, ORANGE, pos, 2)
-        pg.display.flip()
+        for pos in self.ball_game.trajectory:
+            pg.draw.circle(self.screen, ORANGE, pos, 2)
+        pg.display.flip()  
 
     def display_infos(self):
         """

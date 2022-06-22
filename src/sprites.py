@@ -60,6 +60,14 @@ class Ball(pg.sprite.Sprite):
                             standing = True
         self.rect.bottom -= tolerance
         return standing
+
+    def is_in_player_zone(self, x=None) -> bool:
+        if not x: x = self.pos.x
+        return x <= (WIDTH - NET_WIDTH) * 0.5 - PLAYER_RADIUS
+
+    def is_in_bot_zone(self, x=None) -> bool:
+        if not x: x = self.pos.x
+        return x >= (WIDTH + NET_WIDTH) * 0.5
        
     def jump(self) -> None:  
         # Can only jump on platforms or floor
@@ -70,6 +78,7 @@ class Ball(pg.sprite.Sprite):
         """
         Deals with screen collisions (left/right/top/bottom borders)
         """
+        old_vel = (int(self.vel.x), int(self.vel.y))
         if orientation == "horizontal":
             # Right border
             if self.rect.right > WIDTH:
@@ -97,6 +106,8 @@ class Ball(pg.sprite.Sprite):
                 self.rect.top = 0
                 self.pos.y = self.rect.centery
                 self.vel.y *= -1
+        if old_vel != (int(self.vel.x), int(self.vel.y)):
+            self.game.bot.predict_move()
 
     def obstacles_collisions(self, orientation, is_ball_game):
         """
@@ -137,11 +148,37 @@ class Ball(pg.sprite.Sprite):
                             self.vel.y *= -1
             # Predicting landing if collision between obstacles and ball game
             if is_ball_game:
-                self.predict_landing()
+                self.game.bot.predict_move()
 
-    def on_floor_ball_collision(self, ball_game):
+    def on_air_ball_collision(self, other):
+        balls_in_the_air = not self.is_standing() and not other.is_standing()
+        if self.circle_2_circle_overlap(other) and balls_in_the_air: 
+            x1, x2 = self.pos, other.pos
+            m1, m2 = self.r**2, other.r**2
+            M = m1 + m2
+            R = self.r + other.r
+            v1, v2 = self.vel, other.vel
+            # The distance has already been computed, can simplify here
+            d = pg.math.Vector2.magnitude(x1 - x2)
+            disp = (d - R) * 0.5
+            n = vec(x2[0] - x1[0], x2[1] - x1[1])  
+            # Computing new velocities
+            n_v1 = v1 - 2*m2 / M * vec.dot(v1 - v2, x1 - x2) * (x1 - x2) / d**2
+            n_v2 = v2 - 2*m1 / M * vec.dot(v2 - v1, x2 - x1) * (x2 - x1) / d**2
+            self.vel = n_v1
+            other.vel = n_v2
+            # Dealing with sticky collisions issues
+            self.pos.x += disp * (n.x / d)
+            self.pos.y += disp * (n.y / d)
+            other.pos.x -= disp * (n.x / d) 
+            other.pos.y -= disp * (n.y / d)
+            # Predicting ball game landing
+            if other == self.game.ball_game:
+                self.game.bot.predict_move(self == self.game.bot)
+
+    def on_floor_ball_collision(self):
+        ball_game = self.game.ball_game # Sake of readability
         if self.circle_2_circle_overlap(ball_game):
-            print("BOOM")
             dx, dy = ball_game.pos.x - self.pos.x, ball_game.pos.y - self.pos.y
             angle = math.atan2(dy, dx)
             # Only the velocity of the ball game is changed
@@ -156,48 +193,42 @@ class Ball(pg.sprite.Sprite):
             self.pos.y += disp * (n.y / d)
             ball_game.pos.x -= disp * (n.x / d)
             ball_game.pos.y -= disp * (n.y / d)
-            ball_game.predict_landing()
-
+            # Predicting bot's move
+            self.game.bot.predict_move(self == self.game.bot)
 
     def end_round_conditions(self) -> bool:
-        player_zone = (WIDTH - NET_WIDTH) * 0.5 - PLAYER_RADIUS
-        bot_zone =  (WIDTH + NET_WIDTH) * 0.5 + BOT_RADIUS
         # If the ball hits the floor and is in the player/bot zone
         if self == self.game.ball_game:
             if self.is_standing():
-                if self.pos.x >= bot_zone:
+                if self.is_in_bot_zone():
                     self.game.scores["Player"] += 1
-                elif self.pos.x <= player_zone:
+                elif self.is_in_player_zone():
                     self.game.scores["Bot"] += 1
                 return True
         # If player/bot goes into its wrong zone
         else:
-            if self == self.game.bot and self.pos.x <= player_zone:
+            if self == self.game.bot and self.is_in_player_zone():
                 self.game.scores["Player"] += 1
                 return True
-            elif self == self.game.player and self.pos.x >= bot_zone:
+            elif self == self.game.player and self.is_in_bot_zone():
                 self.game.scores["Bot"] += 1
                 return True
         return False
 
     def predict_landing(self):
-        landing = False
+        self.trajectory.clear()
         x, y = self.pos.x, self.pos.y
         vel_x, vel_y = self.vel.x, self.vel.y
-        while not landing:
+        buffer_rect = pg.Rect(self.pos.x - self.r, self.pos.y - self.r, self.r*2, self.r*2)
+        while True:
             vel_y += self.acc.y
             x += vel_x + 0.5 * self.acc.x
             y += vel_y + 0.5 * self.acc.y
-            if y + BALL_GAME_RADIUS >= HEIGHT:
-                landing = True
-        # The ball must hit the floor and land in the bot-zone...
-        # ...ie the right part on the pitch
-        if landing and x > (WIDTH + NET_WIDTH) * 0.5:
-            self.game.bot.ball_landing_point = x
-            if x - self.game.bot.pos.x > 0:
-                self.game.bot.direction = 1
-            else:
-                self.game.bot.direction = -1 
+            self.trajectory.append((x, y))
+            buffer_rect.center = (x, y)
+            if buffer_rect.colliderect(self.game.net) or y + BALL_GAME_RADIUS >= HEIGHT:
+                self.game.bot.ball_landing_point = x
+                return None
 
     def update(self):
         """
@@ -231,7 +262,12 @@ class Ball(pg.sprite.Sprite):
         self.obstacles_collisions("vertical", is_ball_game)       
         # Ball collision (on floor)
         if not is_ball_game and self.is_standing():
-            self.on_floor_ball_collision(self.game.ball_game)
+            self.on_floor_ball_collision()
+        else:
+            particles = self.game.balls.sprites()
+            for i, p in enumerate(particles):
+                for other in particles[i+1:]:
+                    p.on_air_ball_collision(other)
 
 
 # --------------------------------------------------------------
@@ -241,7 +277,16 @@ class Bot(Ball):
     def __init__(self, game, r, x, y, vel, acc, color):
         super().__init__(game, r, x, y, vel, acc, color)
         self.ball_landing_point = None
+        self.can_move = False
         self.direction = 0
+
+    def predict_move(self, self_hit=False):
+        self.game.ball_game.predict_landing()
+        if self.is_in_bot_zone(self.ball_landing_point):
+            if self.ball_landing_point > self.game.bot.pos.x:
+                self.game.bot.direction = 1
+            else:
+                self.game.bot.direction = -1 
 
     def update(self):
         self.vel.x = 0
@@ -269,7 +314,7 @@ class Bot(Ball):
             self.obstacles_collisions("vertical", False) 
             # Ball collision (on floor)
             if self.is_standing():
-                self.on_floor_ball_collision(self.game.ball_game)
+                self.on_floor_ball_collision()
 
     def drunk_mode(self):
         pass
