@@ -61,13 +61,13 @@ class Ball(pg.sprite.Sprite):
         self.rect.bottom -= tolerance
         return standing
 
-    def is_in_player_zone(self, x=None) -> bool:
-        if not x: x = self.pos.x
-        return x <= (WIDTH - NET_WIDTH) * 0.5 - PLAYER_RADIUS
+    @staticmethod
+    def is_in_player_zone(x) -> bool:
+        return x <= (WIDTH - NET_WIDTH) * 0.5
 
-    def is_in_bot_zone(self, x=None) -> bool:
-        if not x: x = self.pos.x
-        return x >= (WIDTH + NET_WIDTH) * 0.5
+    @staticmethod
+    def is_in_bot_zone(x) -> bool:
+        return x >= (WIDTH + NET_WIDTH) * 0.5 
        
     def jump(self) -> None:  
         # Can only jump on platforms or floor
@@ -200,17 +200,17 @@ class Ball(pg.sprite.Sprite):
         # If the ball hits the floor and is in the player/bot zone
         if self == self.game.ball_game:
             if self.is_standing():
-                if self.is_in_bot_zone():
+                if self.is_in_bot_zone(self.rect.left):
                     self.game.scores["Player"] += 1
-                elif self.is_in_player_zone():
+                elif self.is_in_player_zone(self.rect.right):
                     self.game.scores["Bot"] += 1
                 return True
         # If player/bot goes into its wrong zone
         else:
-            if self == self.game.bot and self.is_in_player_zone():
+            if self == self.game.bot and self.is_in_player_zone(self.rect.right):
                 self.game.scores["Player"] += 1
                 return True
-            elif self == self.game.player and self.is_in_bot_zone():
+            elif self == self.game.player and self.is_in_bot_zone(self.rect.left):
                 self.game.scores["Bot"] += 1
                 return True
         return False
@@ -226,7 +226,10 @@ class Ball(pg.sprite.Sprite):
             y += vel_y + 0.5 * self.acc.y
             self.trajectory.append((x, y))
             buffer_rect.center = (x, y)
-            if buffer_rect.colliderect(self.game.net) or y + BALL_GAME_RADIUS >= HEIGHT:
+            if buffer_rect.colliderect(self.game.net):
+                self.game.bot.ball_landing_point = (WIDTH + NET_WIDTH) * 0.5
+                return None
+            if y + BALL_GAME_RADIUS >= HEIGHT:
                 self.game.bot.ball_landing_point = x
                 return None
 

@@ -50,7 +50,7 @@ class Game:
         self.ball_game = Ball(self, *BALL_GAME_SETTINGS)
         self.ball_game.trajectory = []
         self.net = Obstacle(self, *NET_SETTINGS) # Net
-        # self.moving = Obstacle(self, *TODO) # Moving platform
+        self.moving_platform = Obstacle(self, *MOVING_PLATFORM_SETTINGS) # Moving platform
         # Adding to sprite groups
         self.balls.add(self.player, self.bot, self.ball_game)
         self.players.add(self.player)
