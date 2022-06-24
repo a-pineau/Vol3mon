@@ -6,7 +6,7 @@ import pygame as pg
 import math
 
 from itertools import cycle
-from sprites import Ball, Bot, Obstacle
+from sprites import Ball, GameBall, Bot, Obstacle
 from settings import *
 from os.path import join, dirname, abspath
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QGridLayout, QWidget, QLayout)
@@ -23,6 +23,7 @@ class Game:
         self.screen = pg.display.set_mode([WIDTH, HEIGHT])
         pg.display.set_caption(TITLE)
         self.clock = pg.time.Clock()
+        self.dt = self.clock.tick(FPS) * 1e-3
         self.running = True  
         self.start_round = False
         self.n_frame = 0
@@ -41,42 +42,40 @@ class Game:
                 os.remove(file)
         # Defining sprite groups
         self.balls = pg.sprite.Group()
-        self.players = pg.sprite.Group()
         self.obstacles = pg.sprite.Group()
         self.all_sprites = pg.sprite.Group()
         # Defining sprites
         self.player = Ball(self, *PLAYER_SETTINGS) # Player
         self.bot = Bot(self, *BOT_SETTINGS) # Bot
-        self.ball_game = Ball(self, *BALL_GAME_SETTINGS)
-        self.ball_game.trajectory = []
+        self.gameball = GameBall(self, *GAMEBALL_SETTINGS)
+        self.gameball.trajectory = []
         self.net = Obstacle(self, *NET_SETTINGS) # Net
         self.moving_platform = Obstacle(self, *MOVING_PLATFORM_SETTINGS) # Moving platform
         # Adding to sprite groups
-        self.balls.add(self.player, self.bot, self.ball_game)
-        self.players.add(self.player)
-        self.obstacles.add(self.net)
+        self.balls.add(self.player, self.gameball)
+        # self.obstacles.add(self.net)
     
     def run(self):
         # Game loop
         self.playing = True
-        ball_game_init = cycle([BOT_INIT_X, PLAYER_INIT_X])
+        gameball_init = cycle([BOT_INIT_X, PLAYER_INIT_X])
         while self.playing: 
             self.n_frame += 1
             self.clock.tick(FPS)
             self.events()
-            self.update(ball_game_init) 
+            self.update(gameball_init) 
             self.display()
     
-    def update(self, ball_game_init):
+    def update(self, gameball_init):
         # Game loop update
         if self.start_round:
             self.balls.update()
             self.obstacles.update()
-            for sprite in self.balls.sprites():
-                if sprite.end_round_conditions():
-                    self.start_round = False
-                    self.initialize_round(next(ball_game_init))
-                    return None
+            # for sprite in self.balls.sprites():
+            #     if sprite.end_round_conditions():
+            #         self.start_round = False
+            #         self.initialize_round(next(gameball_init))
+            #         return None
                     
     def events(self):
         # Game loop - events
@@ -91,6 +90,10 @@ class Game:
                         self.player.jump()
                     else:
                         self.start_round = True
+                elif event.key == pg.K_q:
+                    if self.playing:
+                        self.playing = False
+                    self.running = False
 
     def initialize_round(self, ball_init_x):
         """
@@ -107,10 +110,10 @@ class Game:
         self.bot.ball_landing_point = None
         self.bot.direction = 0
         # Ball game
-        self.ball_game.pos.x = ball_init_x
-        self.ball_game.pos.y = BALL_GAME_INIT_Y
-        self.ball_game.vel = vec(0, 0)
-        self.ball_game.trajectory.clear()
+        self.gameball.pos.x = ball_init_x
+        self.gameball.pos.y = GAMEBALL_INIT_Y
+        self.gameball.vel = vec(0, 0)
+        self.gameball.trajectory.clear()
                              
     def display(self):
         """
@@ -122,9 +125,9 @@ class Game:
             self.display_message(self.screen, *START_ROUND_SETTINGS)
         self.display_infos()
         pg.draw.circle(self.screen, self.player.color, self.player.pos, self.player.r)
-        pg.draw.circle(self.screen, self.ball_game.color, self.ball_game.pos, self.ball_game.r)
-        pg.draw.circle(self.screen, self.bot.color, self.bot.pos, self.bot.r)
-        for pos in self.ball_game.trajectory:
+        pg.draw.circle(self.screen, self.gameball.color, self.gameball.pos, self.gameball.r)
+        # pg.draw.circle(self.screen, self.bot.color, self.bot.pos, self.bot.r)
+        for pos in self.gameball.trajectory:
             pg.draw.circle(self.screen, ORANGE, pos, 2)
         pg.display.flip()  
 
@@ -147,7 +150,7 @@ class Game:
             True, 
             WHITE)
         scores_text_rect = fps_text.get_rect()
-        scores_text_rect.centerx = WIDTH / 2
+        scores_text_rect.centerx = WIDTH * 0.5
         scores_text_rect.top = 5
         # Drawing to screen
         self.screen.blit(fps_text, fps_text_rect)
@@ -157,7 +160,7 @@ class Game:
     def display_message(screen, message, font_size, color, position):
         """
         TODO
-        """
+        """ 
         font = pg.font.SysFont("Calibri", font_size)
         text = font.render(message, True, color)
         text_rect = text.get_rect()
