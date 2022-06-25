@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (QMainWindow, QApplication, QGridLayout, QWidget, QL
 vec = pg.math.Vector2
 
 # Manually places the window
-os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (100, 0)
+os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (100, 50)
 
 class Game:
     def __init__(self) -> None:
@@ -51,7 +51,7 @@ class Game:
         self.net = Obstacle(self, *NET_SETTINGS) # Net
         self.moving_platform = Obstacle(self, *MOVING_PLATFORM_SETTINGS) # Moving platform
         # Adding to sprite groups
-        self.balls.add(self.player, self.gameball)
+        self.balls.add(self.gameball)
         # self.obstacles.add(self.net)
     
     def run(self):
@@ -123,7 +123,7 @@ class Game:
         if not self.start_round:
             self.display_message(self.screen, *START_ROUND_SETTINGS)
         self.display_infos()
-        pg.draw.circle(self.screen, self.player.color, self.player.pos, self.player.r)
+        # pg.draw.circle(self.screen, self.player.color, self.player.pos, self.player.r)
         pg.draw.circle(self.screen, self.gameball.color, self.gameball.pos, self.gameball.r)
         # pg.draw.circle(self.screen, self.bot.color, self.bot.pos, self.bot.r)
         for pos in self.gameball.trajectory:

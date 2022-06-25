@@ -6,7 +6,7 @@ import math
 import pygame as pg
 import numpy as np
 
-from math import cos, sin, tan, atan2, sqrt
+from math import cos, sin, tan, atan2, radians, sqrt
 from itertools import cycle
 from settings import *
 vec = pg.math.Vector2
@@ -257,10 +257,10 @@ class Ball(pg.sprite.Sprite):
         # Updating x pos
         self.pos.x += self.vel.x + 0.5 * self.acc.x * self.game.dt
         self.rect.centerx = self.pos.x
-        # Screen collisions (horitonzal)
-        self.screen_collisions("horizontal", is_gameball)
-        # Obstacles collisions (horizontal)
-        self.obstacles_collisions("horizontal", is_gameball)
+        # # Screen collisions (horitonzal)
+        # self.screen_collisions("horizontal", is_gameball)
+        # # Obstacles collisions (horizontal)
+        # self.obstacles_collisions("horizontal", is_gameball)
         # Updating y pos
         self.pos.y += self.vel.y + 0.5 * self.acc.y * self.game.dt
         self.rect.centery = self.pos.y
@@ -282,6 +282,10 @@ class GameBall(Ball):
     def __init__(self, game, r, x, y, vel, acc, color):
         super().__init__(game, r, x, y, vel, acc, color)
         self.trajectory = []
+        x0, y0 = x, y
+        angle = radians(self.vel.angle_to(vec(1, 0)))
+        d = self.predict_range(x0, 0, angle)
+        self.predict_trajectory(x0, y0, d, angle)
 
     def predict_range(self, x0, y0, angle):
         # Sake of readability
@@ -289,6 +293,7 @@ class GameBall(Ball):
         g = GAMEBALL_GRAVITY
         # d = V₀ * cos(α) * [V₀ * sin(α) + √((V₀ * sin(α))² + 2 * g * h)] / g
         d = v * cos(angle) 
+        # print("expr =", (v * sin(angle))**2 + 2 * g * y0)
         d *= (v * sin(angle) + sqrt((v * sin(angle))**2 + 2 * g * y0)) 
         d /= g
         d += x0
@@ -299,11 +304,10 @@ class GameBall(Ball):
         v = self.vel.magnitude()
         g = GAMEBALL_GRAVITY
         print("x0 =", x0, "y0 =", y0, "g =", g, "h_range=", h_range, "v =", v, "angle =", angle)
-
         self.trajectory.clear()
         # y = h + x * tan(α) - g * x² / (2 * V₀² * cos²(α))
         for x in range(x0, h_range + 1):
-            y = y0 + x * tan(angle) - g * x**2 / (2*v**2*cos(angle))
+            y = y0 + (x - x0) * tan(angle) - g * (x - x0)**2 / (2*v**2*cos(angle))
             self.trajectory.append((x, y))
         for val in self.trajectory:
             print(val)
