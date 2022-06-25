@@ -48,7 +48,6 @@ class Game:
         self.player = Ball(self, *PLAYER_SETTINGS) # Player
         self.bot = Bot(self, *BOT_SETTINGS) # Bot
         self.gameball = GameBall(self, *GAMEBALL_SETTINGS)
-        self.gameball.trajectory = []
         self.net = Obstacle(self, *NET_SETTINGS) # Net
         self.moving_platform = Obstacle(self, *MOVING_PLATFORM_SETTINGS) # Moving platform
         # Adding to sprite groups
@@ -151,7 +150,7 @@ class Game:
             WHITE)
         scores_text_rect = fps_text.get_rect()
         scores_text_rect.centerx = WIDTH * 0.5
-        scores_text_rect.top = 5
+        scores_text_rect.top = 5 
         # Drawing to screen
         self.screen.blit(fps_text, fps_text_rect)
         self.screen.blit(scores_text, scores_text_rect)

@@ -6,7 +6,7 @@ import math
 import pygame as pg
 import numpy as np
 
-from math import cos, sin, sqrt
+from math import cos, sin, tan, atan2, sqrt
 from itertools import cycle
 from settings import *
 vec = pg.math.Vector2
@@ -98,7 +98,7 @@ class Ball(pg.sprite.Sprite):
                 self.rect.bottom = HEIGHT
                 self.pos.y = self.rect.centery
                 if is_gameball:
-                    print("landing=", self.rect.centerx)
+                    print("landing =", self.rect.centerx)
                     self.vel.y *= -1
                 else:
                     self.vel.y = 0
@@ -179,9 +179,10 @@ class Ball(pg.sprite.Sprite):
 
     def on_floor_ball_collision(self):
         gameball = self.game.gameball # Sake of readability
+        bot = self.game.bot
         if self.circle_2_circle_overlap(gameball):
             dx, dy = gameball.pos.x - self.pos.x, gameball.pos.y - self.pos.y
-            angle = math.atan2(dy, dx)
+            angle = atan2(dy, dx)
             # Only the velocity of the ball game is changed
             gameball.vel.x = math.cos(angle) * GAMEBALL_X_ELASTICITY 
             gameball.vel.y *= -1  
@@ -195,8 +196,11 @@ class Ball(pg.sprite.Sprite):
             gameball.pos.x -= disp * (n.x / d)
             gameball.pos.y -= disp * (n.y / d)
             # Predicting bot's move
-            self.game.bot.predict_move(self == self.game.bot)
-            gameball.horizontal_range(gameball.pos.x, HEIGHT - gameball.pos.y, abs(angle))
+            x0, y0 = gameball.pos.x, HEIGHT - gameball.pos.y - gameball.r
+            theta = math.radians(gameball.vel.angle_to(vec(1, 0)))
+            bot.predict_move(self == bot)
+            h_range = gameball.predict_range(x0, y0, theta)
+            gameball.predict_trajectory(int(x0), y0, h_range, angle)
 
     def end_round_conditions(self) -> bool:
         # If the ball hits the floor and is in the player/bot zone
@@ -218,7 +222,6 @@ class Ball(pg.sprite.Sprite):
         return False
 
     def predict_landing(self):
-        self.trajectory.clear()
         x, y = self.pos.x, self.pos.y
         vel_x, vel_y = self.vel.x, self.vel.y
         buffer_rect = pg.Rect(self.pos.x - self.r, self.pos.y - self.r, self.r*2, self.r*2)
@@ -252,14 +255,14 @@ class Ball(pg.sprite.Sprite):
         # Updating velocity
         self.vel += self.acc
         # Updating x pos
-        self.pos.x += self.vel.x + 0.5 * self.acc.x
+        self.pos.x += self.vel.x + 0.5 * self.acc.x * self.game.dt
         self.rect.centerx = self.pos.x
         # Screen collisions (horitonzal)
         self.screen_collisions("horizontal", is_gameball)
         # Obstacles collisions (horizontal)
         self.obstacles_collisions("horizontal", is_gameball)
         # Updating y pos
-        self.pos.y += self.vel.y + 0.5 * self.acc.y
+        self.pos.y += self.vel.y + 0.5 * self.acc.y * self.game.dt
         self.rect.centery = self.pos.y
         # Screen collisions (vertical)
         self.screen_collisions("vertical", is_gameball)
@@ -278,17 +281,32 @@ class Ball(pg.sprite.Sprite):
 class GameBall(Ball):
     def __init__(self, game, r, x, y, vel, acc, color):
         super().__init__(game, r, x, y, vel, acc, color)
+        self.trajectory = []
 
-    def horizontal_range(self, x0, y0, angle):
+    def predict_range(self, x0, y0, angle):
         # Sake of readability
-        vel = self.vel.magnitude()
+        v = self.vel.magnitude()
         g = GAMEBALL_GRAVITY
-        # Computing the horizontal range
-        h_R = vel * cos(angle) 
-        h_R *= (vel * sin(angle) + sqrt((vel * sin(angle))**2 + 2 * g * y0)) 
-        h_R /= g
-        h_R += x0
-        print("range=", h_R)
+        # d = V₀ * cos(α) * [V₀ * sin(α) + √((V₀ * sin(α))² + 2 * g * h)] / g
+        d = v * cos(angle) 
+        d *= (v * sin(angle) + sqrt((v * sin(angle))**2 + 2 * g * y0)) 
+        d /= g
+        d += x0
+        return int(d)
+
+    def predict_trajectory(self, x0, y0, h_range, angle):
+        print(h_range)
+        v = self.vel.magnitude()
+        g = GAMEBALL_GRAVITY
+        print("x0 =", x0, "y0 =", y0, "g =", g, "h_range=", h_range, "v =", v, "angle =", angle)
+
+        self.trajectory.clear()
+        # y = h + x * tan(α) - g * x² / (2 * V₀² * cos²(α))
+        for x in range(x0, h_range + 1):
+            y = y0 + x * tan(angle) - g * x**2 / (2*v**2*cos(angle))
+            self.trajectory.append((x, y))
+        for val in self.trajectory:
+            print(val)
     
 
 # BOT -------------------------------------------------------
@@ -300,12 +318,13 @@ class Bot(Ball):
         self.direction = 0
 
     def predict_move(self, self_hit=False):
-        self.game.gameball.predict_landing()
-        if self.is_in_bot_zone(self.ball_landing_point):
-            if self.ball_landing_point > self.game.bot.pos.x:
-                self.game.bot.direction = 1
-            else:
-                self.game.bot.direction = -1 
+        pass
+        # self.game.gameball.predict_landing()
+        # if self.is_in_bot_zone(self.ball_landing_point):
+        #     if self.ball_landing_point > self.game.bot.pos.x:
+        #         self.game.bot.direction = 1
+        #     else:
+        #         self.game.bot.direction = -1 
 
     def update(self):
         self.vel.x = 0
