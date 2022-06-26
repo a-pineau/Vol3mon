@@ -51,7 +51,7 @@ class Game:
         self.net = Obstacle(self, *NET_SETTINGS) # Net
         self.moving_platform = Obstacle(self, *MOVING_PLATFORM_SETTINGS) # Moving platform
         # Adding to sprite groups
-        self.balls.add(self.gameball)
+        self.balls.add(self.player, self.gameball)
         # self.obstacles.add(self.net)
     
     def run(self):
@@ -123,10 +123,10 @@ class Game:
         if not self.start_round:
             self.display_message(self.screen, *START_ROUND_SETTINGS)
         self.display_infos()
-        # pg.draw.circle(self.screen, self.player.color, self.player.pos, self.player.r)
+        pg.draw.circle(self.screen, self.player.color, self.player.pos, self.player.r)
         pg.draw.circle(self.screen, self.gameball.color, self.gameball.pos, self.gameball.r)
         # pg.draw.circle(self.screen, self.bot.color, self.bot.pos, self.bot.r)
-        for pos in self.gameball.trajectory:
+        for pos in self.gameball.trajectory[::5]:
             pg.draw.circle(self.screen, ORANGE, pos, 2)
         pg.display.flip()  
 

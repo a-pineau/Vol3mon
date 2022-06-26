@@ -199,8 +199,15 @@ class Ball(pg.sprite.Sprite):
             x0, y0 = gameball.pos.x, HEIGHT - gameball.pos.y - gameball.r
             theta = math.radians(gameball.vel.angle_to(vec(1, 0)))
             bot.predict_move(self == bot)
-            h_range = gameball.predict_range(x0, y0, theta)
-            gameball.predict_trajectory(int(x0), y0, h_range, angle)
+            h_range = gameball.predict_h_range(
+                int(gameball.pos.x), 
+                HEIGHT - gameball.pos.y - gameball.r,
+                theta)
+            gameball.predict_trajectory(
+                int(gameball.pos.x), 
+                gameball.pos.y, 
+                h_range, 
+                theta)
 
     def end_round_conditions(self) -> bool:
         # If the ball hits the floor and is in the player/bot zone
@@ -258,9 +265,9 @@ class Ball(pg.sprite.Sprite):
         self.pos.x += self.vel.x + 0.5 * self.acc.x * self.game.dt
         self.rect.centerx = self.pos.x
         # # Screen collisions (horitonzal)
-        # self.screen_collisions("horizontal", is_gameball)
-        # # Obstacles collisions (horizontal)
-        # self.obstacles_collisions("horizontal", is_gameball)
+        self.screen_collisions("horizontal", is_gameball)
+        # Obstacles collisions (horizontal)
+        self.obstacles_collisions("horizontal", is_gameball)
         # Updating y pos
         self.pos.y += self.vel.y + 0.5 * self.acc.y * self.game.dt
         self.rect.centery = self.pos.y
@@ -282,35 +289,40 @@ class GameBall(Ball):
     def __init__(self, game, r, x, y, vel, acc, color):
         super().__init__(game, r, x, y, vel, acc, color)
         self.trajectory = []
-        x0, y0 = x, y
-        angle = radians(self.vel.angle_to(vec(1, 0)))
-        d = self.predict_range(x0, 0, angle)
-        self.predict_trajectory(x0, y0, d, angle)
+        # x0, y0 = x, y
+        # angle = radians(self.vel.angle_to(vec(1, 0)))
+        # d = self.predict_range(x0, 0, angle)
+        # self.predict_trajectory(x0, y0, d, angle)
 
-    def predict_range(self, x0, y0, angle):
+    def predict_h_range(self, x0, y0, angle):
         # Sake of readability
         v = self.vel.magnitude()
         g = GAMEBALL_GRAVITY
         # d = V₀ * cos(α) * [V₀ * sin(α) + √((V₀ * sin(α))² + 2 * g * h)] / g
-        d = v * cos(angle) 
-        # print("expr =", (v * sin(angle))**2 + 2 * g * y0)
-        d *= (v * sin(angle) + sqrt((v * sin(angle))**2 + 2 * g * y0)) 
-        d /= g
-        d += x0
-        return int(d)
+        h_R = v * cos(angle) 
+        h_R *= (v * sin(angle) + sqrt((v * sin(angle))**2 + 2 * g * y0)) 
+        h_R /= g
+        h_R += x0
+        print("range =", int(h_R))
+        return int(h_R)
 
     def predict_trajectory(self, x0, y0, h_range, angle):
-        print(h_range)
+        self.trajectory.clear()
         v = self.vel.magnitude()
         g = GAMEBALL_GRAVITY
-        print("x0 =", x0, "y0 =", y0, "g =", g, "h_range=", h_range, "v =", v, "angle =", angle)
-        self.trajectory.clear()
+        # print("x0 =", x0, "y0 =", y0, "g =", g, "h_range=", h_range, "v =", v, "angle =", angle)
+        if x0 < h_range + 1:
+            x_values = range(x0, h_range + 1, 1)
+        else:
+            x_values = range(x0, h_range + 1, -1)
         # y = h + x * tan(α) - g * x² / (2 * V₀² * cos²(α))
-        for x in range(x0, h_range + 1):
-            y = y0 + (x - x0) * tan(angle) - g * (x - x0)**2 / (2*v**2*cos(angle))
+        for x in x_values:
+            y = y0 - ((x - x0) * tan(angle) - g * (x - x0)**2 / (2*v**2*cos(angle)**2))
             self.trajectory.append((x, y))
-        for val in self.trajectory:
-            print(val)
+        # Slicing for a better visual representation (dotted line)
+        # for val in self.trajectory:
+        #     print(val)
+
     
 
 # BOT -------------------------------------------------------
