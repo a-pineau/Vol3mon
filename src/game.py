@@ -51,8 +51,8 @@ class Game:
         self.net = Obstacle(self, *NET_SETTINGS) # Net
         self.moving_platform = Obstacle(self, *MOVING_PLATFORM_SETTINGS) # Moving platform
         # Adding to sprite groups
-        self.balls.add(self.player, self.gameball)
-        # self.obstacles.add(self.net)
+        self.balls.add(self.player, self.gameball, self.bot)
+        self.obstacles.add(self.net)
     
     def run(self):
         # Game loop
@@ -70,11 +70,11 @@ class Game:
         if self.start_round:
             self.balls.update()
             self.obstacles.update()
-            # for sprite in self.balls.sprites():
-            #     if sprite.end_round_conditions():
-            #         self.start_round = False
-            #         self.initialize_round(next(gameball_init))
-            #         return None
+            for sprite in self.balls.sprites():
+                if sprite.end_round_conditions():
+                    self.start_round = False
+                    self.initialize_round(next(gameball_init))
+                    return None
                     
     def events(self):
         # Game loop - events
@@ -106,7 +106,7 @@ class Game:
         self.bot.pos.x = BOT_INIT_X
         self.bot.pos.y = BOT_INIT_Y
         self.bot.vel = vec(0, 0)
-        self.bot.ball_landing_point = None
+        self.bot.ball_x = None
         self.bot.direction = 0
         # Ball game
         self.gameball.pos.x = ball_init_x
@@ -125,9 +125,9 @@ class Game:
         self.display_infos()
         pg.draw.circle(self.screen, self.player.color, self.player.pos, self.player.r)
         pg.draw.circle(self.screen, self.gameball.color, self.gameball.pos, self.gameball.r)
-        # pg.draw.circle(self.screen, self.bot.color, self.bot.pos, self.bot.r)
+        pg.draw.circle(self.screen, self.bot.color, self.bot.pos, self.bot.r) 
         for pos in self.gameball.trajectory[::5]:
-            pg.draw.circle(self.screen, ORANGE, pos, 2)
+            pg.draw.circle(self.screen, GREEN3, pos, 2)
         pg.display.flip()  
 
     def display_infos(self):

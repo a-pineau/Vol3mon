@@ -108,7 +108,7 @@ class Ball(pg.sprite.Sprite):
                 self.pos.y = self.rect.centery
                 self.vel.y *= -1
         if old_vel != (int(self.vel.x), int(self.vel.y)):
-            self.game.bot.predict_move()
+            self.game.bot.predict_move(self.game.gameball)
 
     def obstacles_collisions(self, orientation, is_gameball):
         """
@@ -149,7 +149,7 @@ class Ball(pg.sprite.Sprite):
                             self.vel.y *= -1
             # Predicting landing if collision between obstacles and ball game
             if is_gameball:
-                self.game.bot.predict_move()
+                self.game.bot.predict_move(self.game.gameball)
 
     def on_air_ball_collision(self, other):
         balls_in_the_air = not self.is_standing() and not other.is_standing()
@@ -174,8 +174,7 @@ class Ball(pg.sprite.Sprite):
             other.pos.x -= disp * (n.x / d) 
             other.pos.y -= disp * (n.y / d)
             # Predicting ball game landing
-            if other == self.game.gameball:
-                self.game.bot.predict_move(self == self.game.bot)
+            self.game.bot.predict_move(self.game.gameball)
 
     def on_floor_ball_collision(self):
         gameball = self.game.gameball # Sake of readability
@@ -196,18 +195,7 @@ class Ball(pg.sprite.Sprite):
             gameball.pos.x -= disp * (n.x / d)
             gameball.pos.y -= disp * (n.y / d)
             # Predicting bot's move
-            x0, y0 = gameball.pos.x, HEIGHT - gameball.pos.y - gameball.r
-            theta = math.radians(gameball.vel.angle_to(vec(1, 0)))
-            bot.predict_move(self == bot)
-            h_range = gameball.predict_h_range(
-                int(gameball.pos.x), 
-                HEIGHT - gameball.pos.y - gameball.r,
-                theta)
-            gameball.predict_trajectory(
-                int(gameball.pos.x), 
-                gameball.pos.y, 
-                h_range, 
-                theta)
+            bot.predict_move(gameball)
 
     def end_round_conditions(self) -> bool:
         # If the ball hits the floor and is in the player/bot zone
@@ -319,9 +307,6 @@ class GameBall(Ball):
         for x in x_values:
             y = y0 - ((x - x0) * tan(angle) - g * (x - x0)**2 / (2*v**2*cos(angle)**2))
             self.trajectory.append((x, y))
-        # Slicing for a better visual representation (dotted line)
-        # for val in self.trajectory:
-        #     print(val)
 
     
 
@@ -329,25 +314,33 @@ class GameBall(Ball):
 class Bot(Ball):
     def __init__(self, game, r, x, y, vel, acc, color):
         super().__init__(game, r, x, y, vel, acc, color)
-        self.ball_landing_point = None
+        self.ball_x = None
         self.can_move = False
         self.direction = 0
 
-    def predict_move(self, self_hit=False):
-        pass
-        # self.game.gameball.predict_landing()
-        # if self.is_in_bot_zone(self.ball_landing_point):
-        #     if self.ball_landing_point > self.game.bot.pos.x:
-        #         self.game.bot.direction = 1
-        #     else:
-        #         self.game.bot.direction = -1 
+    def predict_move(self, gameball):
+        theta = math.radians(gameball.vel.angle_to(vec(1, 0)))
+        self.ball_x = gameball.predict_h_range(
+            int(gameball.pos.x), 
+            HEIGHT - gameball.pos.y - gameball.r,
+            theta)
+        gameball.predict_trajectory(
+            int(gameball.pos.x), 
+            gameball.pos.y, 
+            self.ball_x, 
+            theta)
+        if self.is_in_bot_zone(self.ball_x):
+            if self.ball_x > self.game.bot.pos.x:
+                self.game.bot.direction = 1
+            else:
+                self.game.bot.direction = -1 
 
     def update(self):
         self.vel.x = 0
-        if self.ball_landing_point:
-            if self.pos.x < self.ball_landing_point and self.direction == -1:
+        if self.ball_x:
+            if self.pos.x < self.ball_x and self.direction == -1:
                 self.direction = 0
-            if self.pos.x > self.ball_landing_point and self.direction == 1:
+            if self.pos.x > self.ball_x and self.direction == 1:
                 self.direction = 0
             self.vel.x += self.direction * BOT_X_SPEED
             # Updating velocity
