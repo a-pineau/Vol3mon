@@ -6,7 +6,7 @@ import math
 import pygame as pg
 import numpy as np
 
-from math import cos, sin, tan, atan2, radians, sqrt
+from math import cos, degrees, sin, tan, acos, atan, atan2, radians, sqrt
 from itertools import cycle
 from settings import *
 vec = pg.math.Vector2
@@ -63,11 +63,11 @@ class Ball(pg.sprite.Sprite):
 
     @staticmethod
     def is_in_player_zone(x) -> bool:
-        return x <= (WIDTH - NET_WIDTH) * 0.5
+        return x <= (WIDTH - NET_WIDTH) * 0.5 and x > 0
 
     @staticmethod
     def is_in_bot_zone(x) -> bool:
-        return x >= (WIDTH + NET_WIDTH) * 0.5 
+        return x >= (WIDTH + NET_WIDTH) * 0.5 and x < WIDTH
        
     def jump(self) -> None:  
         # Can only jump on platforms or floor
@@ -84,14 +84,12 @@ class Ball(pg.sprite.Sprite):
             if self.rect.right > WIDTH:
                 self.rect.right = WIDTH
                 self.pos.x = self.rect.centerx
-                if is_gameball:
-                    self.vel.x *= -1
+                if is_gameball: self.vel.x *= -1
             # Left border
             elif self.rect.left < 0:
                 self.rect.left = 0
                 self.pos.x = self.rect.centerx
-                if is_gameball:
-                    self.vel.x *= -1
+                if is_gameball: self.vel.x *= -1
         if orientation == "vertical":
             # Bottom border
             if self.rect.bottom >= HEIGHT:
@@ -99,15 +97,15 @@ class Ball(pg.sprite.Sprite):
                 self.pos.y = self.rect.centery
                 if is_gameball:
                     print("landing =", self.rect.centerx)
-                    self.vel.y *= -1
-                else:
-                    self.vel.y = 0
+                    self.vel.y *= -1 
+                else: 
+                    self.vel.y *= 0
             # Top border
             elif self.rect.top < 0:
                 self.rect.top = 0
                 self.pos.y = self.rect.centery
                 self.vel.y *= -1
-        if old_vel != (int(self.vel.x), int(self.vel.y)):
+        if is_gameball and old_vel != (int(self.vel.x), int(self.vel.y)):
             self.game.bot.predict_move(self.game.gameball)
 
     def obstacles_collisions(self, orientation, is_gameball):
@@ -137,10 +135,7 @@ class Ball(pg.sprite.Sprite):
                         self.old_rect.bottom - 1 <= sprite.old_rect.top):
                             self.rect.bottom = sprite.rect.top
                             self.pos.y = self.rect.centery
-                            if is_gameball: 
-                                self.vel.y *= -1
-                            else:
-                                self.vel.y = 0
+                            self.vel.y *= -1 if is_gameball else 0
                     # Bottom side collision
                     if (self.rect.top <= sprite.rect.bottom and 
                         self.old_rect.top + 1 >= sprite.old_rect.bottom):
@@ -190,8 +185,8 @@ class Ball(pg.sprite.Sprite):
             R = self.r + gameball.r
             d = pg.math.Vector2.magnitude(gameball.pos - self.pos)
             disp = (d - R) * 0.5
-            self.pos.x += disp * (n.x / d)
-            self.pos.y += disp * (n.y / d)
+            # self.pos.x += disp * (n.x / d)
+            # self.pos.y += disp * (n.y / d)
             gameball.pos.x -= disp * (n.x / d)
             gameball.pos.y -= disp * (n.y / d)
             # Predicting bot's move
@@ -277,12 +272,18 @@ class GameBall(Ball):
     def __init__(self, game, r, x, y, vel, acc, color):
         super().__init__(game, r, x, y, vel, acc, color)
         self.trajectory = []
-        # x0, y0 = x, y
-        # angle = radians(self.vel.angle_to(vec(1, 0)))
-        # d = self.predict_range(x0, 0, angle)
-        # self.predict_trajectory(x0, y0, d, angle)
+        angle = radians(self.vel.angle_to(vec(1, 0)))
+        # self.predict_angle(
+        #     xf, 
+        #     HEIGHT - self.pos.y - self.r, 
+        #     GAMEBALL_GRAVITY, 
+        #     self.vel.magnitude())
 
     def predict_h_range(self, x0, y0, angle):
+        print("x0 =", x0)
+        print("y0 =", y0)
+        print("angle =", degrees(angle))
+        print("v =", self.vel.magnitude())
         # Sake of readability
         v = self.vel.magnitude()
         g = GAMEBALL_GRAVITY
@@ -291,33 +292,62 @@ class GameBall(Ball):
         h_R *= (v * sin(angle) + sqrt((v * sin(angle))**2 + 2 * g * y0)) 
         h_R /= g
         h_R += x0
-        print("range =", int(h_R))
+        # self.game.bot.ball_x = h_R
+        print("range =", h_R)
         return int(h_R)
 
     def predict_trajectory(self, x0, y0, h_range, angle):
         self.trajectory.clear()
         v = self.vel.magnitude()
         g = GAMEBALL_GRAVITY
-        # print("x0 =", x0, "y0 =", y0, "g =", g, "h_range=", h_range, "v =", v, "angle =", angle)
+        buffer_rect = pg.Rect(
+            self.pos.x - self.r, self.pos.y - self.r, 
+            self.r*2, self.r*2)
         if x0 < h_range + 1:
             x_values = range(x0, h_range + 1, 1)
         else:
             x_values = range(x0, h_range + 1, -1)
-        # y = h + x * tan(α) - g * x² / (2 * V₀² * cos²(α))
+        # y = h - [(x - x0) * tan(α) - g * (x - x0)² / (2 * V₀² * cos²(α))]
+        """Note: this isn't exactly the commonly used equation as the y component
+        of the position decreases, before decreasing again to describe the parabolic 
+        trajectory, after collision (due to Pygame frame). 
+        Also, the shift needs to be taken into consideration (x - x0).
+        """
         for x in x_values:
             y = y0 - ((x - x0) * tan(angle) - g * (x - x0)**2 / (2*v**2*cos(angle)**2))
+            buffer_rect.center = (x, y)
             self.trajectory.append((x, y))
+            if buffer_rect.colliderect(self.game.net):
+                self.game.bot.ball_landing_point = (WIDTH + NET_WIDTH) * 0.5
+                return None
 
-    
+    def predict_angle(self, xf, h, g, v):
+        """
+        TODO
+        """
+        v = self.vel.magnitude()
+        g = GAMEBALL_GRAVITY
+        try:
+            c1 = (g*xf**2/v**2 - h) / sqrt(h**2 + xf**2)
+            c1 = acos(c1)
+        except ValueError:
+            print("Impossible to reach!")
+            return False
+        else:
+            c2 = atan(xf/h)
+            angle = (c1 + c2) * 0.5
+            return angle
 
 # BOT -------------------------------------------------------
 class Bot(Ball):
     def __init__(self, game, r, x, y, vel, acc, color):
         super().__init__(game, r, x, y, vel, acc, color)
         self.ball_x = None
-        self.can_move = False
+        self.best_angle = None
         self.direction = 0
 
+    def predict_best_pos(self):
+        x_2_reach = 300
     def predict_move(self, gameball):
         theta = math.radians(gameball.vel.angle_to(vec(1, 0)))
         self.ball_x = gameball.predict_h_range(
@@ -351,17 +381,17 @@ class Bot(Ball):
             # Screen collisions (horitonzal)
             self.screen_collisions("horizontal", False)
             # Obstacles collisions (horizontal)
-            self.obstacles_collisions("horizontal", False)
+            # self.obstacles_collisions("horizontal", False)
             # Updating y pos
             self.pos.y += self.vel.y + 0.5 * self.acc.y
             self.rect.centery = self.pos.y
             # Screen collisions (vertical)
             self.screen_collisions("vertical", False)
             # Obstacles collisions (vertical)
-            self.obstacles_collisions("vertical", False) 
+            # self.obstacles_collisions("vertical", False) 
             # Ball collision (on floor)
-            if self.is_standing():
-                self.on_floor_ball_collision()
+        if self.is_standing():
+            self.on_floor_ball_collision()
 
     def drunk_mode(self):
         pass
