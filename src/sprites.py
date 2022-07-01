@@ -6,7 +6,8 @@ import math
 import pygame as pg
 import numpy as np
 
-from math import cos, degrees, sin, tan, acos, atan, atan2, radians, sqrt
+from math import (cos, degrees, sin, tan, acos, 
+                  atan, atan2, pi, radians, sqrt)
 from itertools import cycle
 from settings import *
 vec = pg.math.Vector2
@@ -168,29 +169,42 @@ class Ball(pg.sprite.Sprite):
             self.pos.y += disp * (n.y / d)
             other.pos.x -= disp * (n.x / d) 
             other.pos.y -= disp * (n.y / d)
-            # Predicting ball game landing
+            # Predicting bot's move
             self.game.bot.predict_move(self.game.gameball)
 
     def on_floor_ball_collision(self):
+        """
+        TODO
+        """
         gameball = self.game.gameball # Sake of readability
         bot = self.game.bot
+        dx = gameball.pos.x - self.pos.x
+        dy = gameball.pos.y - self.pos.y
+        R = self.r + gameball.r
+        d = pg.math.Vector2.magnitude(gameball.pos - self.pos)
+        disp = (d - R) * 0.5
+        n = vec(dx, dy)
         if self.circle_2_circle_overlap(gameball):
-            dx, dy = gameball.pos.x - self.pos.x, gameball.pos.y - self.pos.y
-            angle = atan2(dy, dx)
-            # Only the velocity of the ball game is changed
-            gameball.vel.x = math.cos(angle) * GAMEBALL_X_ELASTICITY 
-            gameball.vel.y *= -1  
-            # Dealing with sticky collisions issues
-            n = vec(dx, dy)
-            R = self.r + gameball.r
-            d = pg.math.Vector2.magnitude(gameball.pos - self.pos)
-            disp = (d - R) * 0.5
-            # self.pos.x += disp * (n.x / d)
-            # self.pos.y += disp * (n.y / d)
+            if self == bot:
+                angle2 = abs(atan2(dy, dx))
+                print("angle2 =", degrees(atan2(dy, dx)))
+                best_angle = gameball.predict_angle(
+                    gameball.pos.x, 
+                    self.x_to_reach, 
+                    HEIGHT - gameball.pos.y - gameball.r, 
+                    GAMEBALL_GRAVITY, 
+                    gameball.vel.magnitude())
+                print("best_angle =", degrees(best_angle))
+                vx = gameball.vel.magnitude() * cos(best_angle)
+                vy = gameball.vel.magnitude() * -sin(best_angle)
+                gameball.vel.x = vx
+                gameball.vel.y = vy
+            else:
+                pass
             gameball.pos.x -= disp * (n.x / d)
             gameball.pos.y -= disp * (n.y / d)
             # Predicting bot's move
-            bot.predict_move(gameball)
+            # bot.predict_move(gameball)
 
     def end_round_conditions(self) -> bool:
         # If the ball hits the floor and is in the player/bot zone
@@ -260,7 +274,7 @@ class Ball(pg.sprite.Sprite):
         self.obstacles_collisions("vertical", is_gameball)       
         # Ball collision (on floor)
         if not is_gameball and self.is_standing():
-            self.on_floor_ball_collision()
+            self.on_floor_ball_collision2()
         else:
             particles = self.game.balls.sprites()
             for i, p in enumerate(particles):
@@ -272,27 +286,16 @@ class GameBall(Ball):
     def __init__(self, game, r, x, y, vel, acc, color):
         super().__init__(game, r, x, y, vel, acc, color)
         self.trajectory = []
-        angle = radians(self.vel.angle_to(vec(1, 0)))
-        # self.predict_angle(
-        #     xf, 
-        #     HEIGHT - self.pos.y - self.r, 
-        #     GAMEBALL_GRAVITY, 
-        #     self.vel.magnitude())
 
     def predict_h_range(self, x0, y0, angle):
-        print("x0 =", x0)
-        print("y0 =", y0)
-        print("angle =", degrees(angle))
-        print("v =", self.vel.magnitude())
         # Sake of readability
         v = self.vel.magnitude()
         g = GAMEBALL_GRAVITY
         # d = V₀ * cos(α) * [V₀ * sin(α) + √((V₀ * sin(α))² + 2 * g * h)] / g
         h_R = v * cos(angle) 
-        h_R *= (v * sin(angle) + sqrt((v * sin(angle))**2 + 2 * g * y0)) 
+        h_R *= v * sin(angle) + sqrt((v * sin(angle))**2 + 2 * g * y0)
         h_R /= g
         h_R += x0
-        # self.game.bot.ball_x = h_R
         print("range =", h_R)
         return int(h_R)
 
@@ -308,9 +311,8 @@ class GameBall(Ball):
         else:
             x_values = range(x0, h_range + 1, -1)
         # y = h - [(x - x0) * tan(α) - g * (x - x0)² / (2 * V₀² * cos²(α))]
-        """Note: this isn't exactly the commonly used equation as the y component
-        of the position decreases, before decreasing again to describe the parabolic 
-        trajectory, after collision (due to Pygame frame). 
+        """Note: this isn't exactly the commonly used equation as the numerical value of
+        the y component of the ball position firslty decreases, after collision (due to Pygame's frame). 
         Also, the shift needs to be taken into consideration (x - x0).
         """
         for x in x_values:
@@ -321,22 +323,22 @@ class GameBall(Ball):
                 self.game.bot.ball_landing_point = (WIDTH + NET_WIDTH) * 0.5
                 return None
 
-    def predict_angle(self, xf, h, g, v):
+    def predict_angle(self, x0, xf, h, g, v):
         """
         TODO
         """
-        v = self.vel.magnitude()
+        print("h =", h)
         g = GAMEBALL_GRAVITY
         try:
-            c1 = (g*xf**2/v**2 - h) / sqrt(h**2 + xf**2)
+            c1 = (g*(xf-x0)**2/v**2 - h) / sqrt(h**2 + (xf-x0)**2)
             c1 = acos(c1)
         except ValueError:
             print("Impossible to reach!")
             return False
         else:
-            c2 = atan(xf/h)
+            c2 = atan(abs(xf-x0)/h)
             angle = (c1 + c2) * 0.5
-            return angle
+            return pi - angle if xf <= x0 else angle
 
 # BOT -------------------------------------------------------
 class Bot(Ball):
@@ -345,9 +347,28 @@ class Bot(Ball):
         self.ball_x = None
         self.best_angle = None
         self.direction = 0
+        self.x_to_reach = 550
+        self.best_spot = None
+        best_angle = self.game.gameball.predict_angle(
+            self.game.gameball.pos.x,
+            self.x_to_reach,
+            HEIGHT - self.game.gameball.pos.y - self.game.gameball.r,
+            GAMEBALL_GRAVITY,
+            14.1
+        )
+        self.predict_best_spot(self.pos.x, best_angle)
 
-    def predict_best_pos(self):
-        x_2_reach = 300
+    def predict_best_spot(self, x, best_angle):
+        """
+        TODO
+        """
+        self.best_spot = x + (self.game.gameball.r + self.r) * tan(best_angle - pi*0.5)
+        print("best_spot =", self.best_spot)
+        if self.best_spot > self.pos.x:
+            self.direction = 1
+        else:
+            self.direction = -1 
+
     def predict_move(self, gameball):
         theta = math.radians(gameball.vel.angle_to(vec(1, 0)))
         self.ball_x = gameball.predict_h_range(
@@ -360,17 +381,14 @@ class Bot(Ball):
             self.ball_x, 
             theta)
         if self.is_in_bot_zone(self.ball_x):
-            if self.ball_x > self.game.bot.pos.x:
-                self.game.bot.direction = 1
-            else:
-                self.game.bot.direction = -1 
+            pass
 
     def update(self):
         self.vel.x = 0
-        if self.ball_x:
-            if self.pos.x < self.ball_x and self.direction == -1:
+        if self.best_spot:
+            if self.pos.x < self.best_spot and self.direction == -1:
                 self.direction = 0
-            if self.pos.x > self.ball_x and self.direction == 1:
+            if self.pos.x > self.best_spot and self.direction == 1:
                 self.direction = 0
             self.vel.x += self.direction * BOT_X_SPEED
             # Updating velocity

@@ -45,14 +45,14 @@ class Game:
         self.obstacles = pg.sprite.Group()
         self.all_sprites = pg.sprite.Group()
         # Defining sprites
+        self.gameball = GameBall(self, *GAMEBALL_SETTINGS)  
         self.player = Ball(self, *PLAYER_SETTINGS) # Player
         self.bot = Bot(self, *BOT_SETTINGS) # Bot
-        self.gameball = GameBall(self, *GAMEBALL_SETTINGS)
         self.net = Obstacle(self, *NET_SETTINGS) # Net
         self.moving_platform = Obstacle(self, *MOVING_PLATFORM_SETTINGS) # Moving platform
         # Adding to sprite groups
         # self.balls.add(self.player, self.gameball, self.bot)
-        self.balls.add(self.gameball, self.bot)
+        self.balls.add(self.bot, self.gameball)
         # self.obstacles.add(self.net)
     
     def run(self):
@@ -131,7 +131,7 @@ class Game:
             pg.draw.circle(self.screen, GREEN3, pos, 2)
         pg.display.flip()  
 
-    def display_infos(self):
+    def display_infos(self): 
         """
         TODO
         """
