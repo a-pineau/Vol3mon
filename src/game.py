@@ -6,7 +6,10 @@ import pygame as pg
 import math
 
 from itertools import cycle
-from sprites import Ball, GameBall, Bot, Obstacle
+from player import Player
+from ball import Ball
+from bot import Bot
+from obstacle import Obstacle
 from settings import *
 from os.path import join, dirname, abspath
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QGridLayout, QWidget, QLayout)
@@ -45,37 +48,37 @@ class Game:
         self.obstacles = pg.sprite.Group()
         self.all_sprites = pg.sprite.Group()
         # Defining sprites
-        self.gameball = GameBall(self, *GAMEBALL_SETTINGS)  
-        self.player = Ball(self, *PLAYER_SETTINGS) # Player
+        self.player = Player(self, *PLAYER_SETTINGS) # Player
+        self.ball = Ball(self, *BALL_SETTINGS) # Ball  
         self.bot = Bot(self, *BOT_SETTINGS) # Bot
         self.net = Obstacle(self, *NET_SETTINGS) # Net
         self.moving_platform = Obstacle(self, *MOVING_PLATFORM_SETTINGS) # Moving platform
         # Adding to sprite groups
-        # self.balls.add(self.player, self.gameball, self.bot)
-        self.balls.add(self.bot, self.gameball)
-        # self.obstacles.add(self.net)
+        # self.balls.add(self.player, self.ball, self.bot)
+        self.balls.add(self.ball, self.bot)
+        self.obstacles.add(self.net)
     
     def run(self):
         # Game loop
         self.playing = True
-        gameball_init = cycle([BOT_INIT_X, PLAYER_INIT_X])
+        ball_init = cycle([BOT_INIT_X, PLAYER_INIT_X])
         while self.playing: 
             self.n_frame += 1
             self.clock.tick(FPS)
             self.events()
-            self.update(gameball_init) 
+            self.update(ball_init) 
             self.display()
     
-    def update(self, gameball_init):
+    def update(self, ball_init):
         # Game loop update
         if self.start_round:
             self.balls.update()
             self.obstacles.update()
-            # for sprite in self.balls.sprites():
-            #     if sprite.end_round_conditions():
-            #         self.start_round = False
-            #         self.initialize_round(next(gameball_init))
-            #         return None
+            for sprite in self.balls.sprites():
+                if sprite.end_round_conditions():
+                    self.start_round = False
+                    self.initialize_round(next(ball_init))
+                    return None
                     
     def events(self):
         # Game loop - events
@@ -110,10 +113,11 @@ class Game:
         self.bot.ball_x = None
         self.bot.direction = 0
         # Ball game
-        self.gameball.pos.x = ball_init_x
-        self.gameball.pos.y = GAMEBALL_INIT_Y
-        self.gameball.vel = vec(0, 0)
-        self.gameball.trajectory.clear()
+        self.ball.pos.x = ball_init_x
+        self.ball.pos.y = BALL_INIT_Y
+        self.ball.vel = vec(BALL_INIT_VEL_X, BALL_INIT_VEL_Y)
+        self.ball.trajectory.clear()
+        self.ball.drop()
                              
     def display(self):
         """
@@ -125,9 +129,9 @@ class Game:
             self.display_message(self.screen, *START_ROUND_SETTINGS)
         self.display_infos()
         # pg.draw.circle(self.screen, self.player.color, self.player.pos, self.player.r)
-        pg.draw.circle(self.screen, self.gameball.color, self.gameball.pos, self.gameball.r)
+        pg.draw.circle(self.screen, self.ball.color, self.ball.pos, self.ball.r)
         pg.draw.circle(self.screen, self.bot.color, self.bot.pos, self.bot.r)  
-        for pos in self.gameball.trajectory[::7]:
+        for pos in self.ball.trajectory[::7]:
             pg.draw.circle(self.screen, GREEN3, pos, 2)
         pg.display.flip()  
 
