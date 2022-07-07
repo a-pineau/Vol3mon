@@ -26,7 +26,7 @@ class Game:
         self.screen = pg.display.set_mode([WIDTH, HEIGHT])
         pg.display.set_caption(TITLE)
         self.clock = pg.time.Clock()
-        self.dt = self.clock.tick(FPS) * 1e-3
+        self.dt = self.clock.tick(FPS)*1e-3
         self.running = True  
         self.start_round = False
         self.n_frame = 0
@@ -57,6 +57,12 @@ class Game:
         # self.balls.add(self.player, self.ball, self.bot)
         self.balls.add(self.ball, self.bot)
         self.obstacles.add(self.net)
+        # IDK
+        self.ball.drop()
+        h_range = self.ball.predict_h_range()
+        landing_speed = self.ball.predict_speed(HEIGHT - self.ball.r)
+        self.ball.best_angle = self.ball.predict_angle(h_range, self.bot.x_to_reach, 14.399000000000012)
+        self.bot.predict_best_spot(h_range, self.ball.best_angle)
     
     def run(self):
         # Game loop
@@ -74,11 +80,11 @@ class Game:
         if self.start_round:
             self.balls.update()
             self.obstacles.update()
-            for sprite in self.balls.sprites():
-                if sprite.end_round_conditions():
-                    self.start_round = False
-                    self.initialize_round(next(ball_init))
-                    return None
+            # for sprite in self.balls.sprites():
+            #     if sprite.end_round_conditions():
+            #         self.start_round = False
+            #         self.initialize_round(next(ball_init))
+            #         return None
                     
     def events(self):
         # Game loop - events
@@ -117,7 +123,7 @@ class Game:
         self.ball.pos.y = BALL_INIT_Y
         self.ball.vel = vec(BALL_INIT_VEL_X, BALL_INIT_VEL_Y)
         self.ball.trajectory.clear()
-        self.ball.drop()
+        h_range = self.ball.drop()
                              
     def display(self):
         """

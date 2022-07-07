@@ -18,10 +18,12 @@ class Ball(Player):
     def __init__(self, game, r, x, y, vel, acc, color):
         super().__init__(game, r, x, y, vel, acc, color)
         self.trajectory = []
-        self.drop()
+        self.best_angle = None
 
     def drop(self):
         angle = None
+        xi = self.pos.x
+        mag = self.vel.magnitude()
         while not angle:
             if self.pos.x < WIDTH * 0.5:
                 x0 = PLAYER_RADIUS
@@ -31,32 +33,79 @@ class Ball(Player):
                 x1 = WIDTH - BOT_RADIUS
             xf = random.randint(x0, x1)
             mag = self.vel.magnitude()
-            angle = self.predict_angle(
-                self.pos.x,
-                xf,
-                HEIGHT - self.pos.y - self.r,
-                BALL_GRAVITY,
-                mag)
+            angle = self.predict_angle(xi, xf)
+        # Setting new velocity
         self.vel.x = mag * cos(angle)
         self.vel.y = mag * -sin(angle)
-        print('MDR')
-        self.predict_h_range(angle)
 
-    def predict_h_range(self, angle):
+    def predict_h_range(self, angle=None):
+        if not angle:
+            angle = radians(self.vel.angle_to(vec(1, 0)))
         # Sake of readability
-        x0 = int(self.pos.x)
+        x0 = self.pos.x
         y0 = HEIGHT - self.pos.y - self.r
         v = self.vel.magnitude()
         g = BALL_GRAVITY
         # d = V₀ * cos(α) * [V₀ * sin(α) + √((V₀ * sin(α))² + 2 * g * h)] / g
-        h_R = v * cos(angle) 
-        h_R *= v * sin(angle) + sqrt((v * sin(angle))**2 + 2 * g * y0)
-        h_R /= g
-        h_R -= x0
-        print("h_range =", h_R)
-        return int(h_R)
+        hR = v * cos(angle) 
+        hR *= v * sin(angle) + sqrt((v * sin(angle))**2 + 2 * g * y0)
+        hR /= g
+        hR += x0
+        print("range =", hR)
+        return int(hR)
 
+    def predict_angle(self, x0, xf, v=None):
+        """
+        TODO
+        """
+        y0 = HEIGHT - self.pos.y - self.r
+        yy = HEIGHT - 2*BOT_RADIUS
+        g = BALL_GRAVITY
+        if not v: v = self.vel.magnitude()
+        print("y0 =", y0, "x0 =", x0, "xf =", xf, "v =", v)
+        print("yy =", yy)
+        try:
+            c1 = (g*(xf-x0)**2/v**2 - y0) / sqrt(y0**2 + (xf-x0)**2)
+            c1 = acos(c1)
+        except ValueError:
+            print("Impossible to reach!")
+            return None
+        else:
+            c2 = atan(abs(xf-x0) / y0)
+            angle = (c1+c2) * 0.5
+            return pi - angle if xf <= x0 else angle
+
+    def predict_speed(self, yf):
+        """
+        TODO
+        """
+        y0 = self.pos.y
+        disp_y = yf - y0
+        g = BALL_GRAVITY
+        # Solving quadratic equation
+        a = -g*0.5
+        b = -self.vel.y
+        c = yf - y0
+        delta = b**2 - 4*a*c
+        try:
+            sqrt(delta)
+        except ValueError:
+            print("The value of yf can't be reached! Returning None value.")
+            return None
+        else:
+            t1 = (-b-sqrt(delta)) / (2*a)
+            t2 = (-b+sqrt(delta)) / (2*a)
+            tf = t1 if t1 > 0 else t2
+            vy = self.vel.y + self.acc.y * tf
+            # Computing velocity magnitude
+            mag = sqrt(self.vel.x**2 + vy**2)
+            print("mag =", mag)
+            return mag
+    
     def predict_trajectory(self, h_range, angle):
+        """
+        TODO
+        """
         self.trajectory.clear()
         x0 = int(self.pos.x)
         y0 = self.pos.y
@@ -81,61 +130,6 @@ class Ball(Player):
             if buffer_rect.colliderect(self.game.net):
                 self.game.bot.ball_landing_point = (WIDTH + NET_WIDTH) * 0.5
                 return None
-        for v in self.trajectory:
-            # print(v)
-            pass
-
-    def compute_y_pos(self, yf, angle):
-        """
-        TODO
-        """
-        x0 = self.pos.x
-        y0 = self.pos.y
-        v = self.vel.magnitude()
-        g = BALL_GRAVITY    
-        c1 = 2*v**2 * cos(angle)**2
-        c2 = g*x0**2 + c1*(y0+x0*tan(angle)-yf)
-        a = g
-        b = -2*g*x0 - c1*tan(angle)
-        c = c2
-        delta = b**2 - 4*a*c
-        print("delta =", delta)
-        x1 = (-b-sqrt(delta)) / 2*a
-        x2 = (-b+sqrt(delta)) / 2*a
-        print("x1, x2 =", x1, x2)
-        pass
-
-    def compute_y_pos2(self, yf, angle):
-        x0 = self.pos.x
-        y0 = self.pos.y
-        g = BALL_GRAVITY
-        v = self.vel.magnitude()
-        a = g / (2*v**2*cos(angle)**2)
-        b = -tan(angle)
-        c = y0 - yf
-        delta = b**2 - 4*a*c
-        print("delta =", delta)
-        X1 = (-b - sqrt(delta)) / 2*a
-        X2 = (-b + sqrt(delta)) / 2*a
-        x1, x2 = X1 + x0, X2 + x0
-        print("x1, x2 =", x1, x2)
-
-    def predict_angle(self, x0, xf, h, g, v):
-        """
-        TODO
-        """
-        g = BALL_GRAVITY
-        try:
-            c1 = (g*(xf-x0)**2/v**2 - h) / sqrt(h**2 + (xf-x0)**2)
-            c1 = acos(c1)
-        except ValueError:
-            # print("Impossible to reach!")
-            return None
-        else:
-            c2 = atan(abs(xf-x0)/h)
-            angle = (c1 + c2) * 0.5
-            return pi - angle if xf <= x0 else angle
-
 
 def main():
     pass

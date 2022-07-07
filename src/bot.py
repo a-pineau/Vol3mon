@@ -18,20 +18,10 @@ class Bot(Player):
     def __init__(self, game, r, x, y, vel, acc, color):
         super().__init__(game, r, x, y, vel, acc, color)
         self.ball_x = None
-        self.best_angle = None
         self.direction = 0
-        self.x_to_reach = 400
+        self.x_to_reach = 350
         self.best_spot = None
         self.ball = self.game.ball
-        best_angle = self.ball.predict_angle(
-            self.game.ball.pos.x,
-            self.x_to_reach,
-            HEIGHT - self.ball.pos.y - self.ball.r,
-            BALL_GRAVITY,
-            14.1
-        )
-        if best_angle:
-            self.predict_best_spot(self.pos.x, best_angle)
 
     def predict_best_spot(self, x, best_angle):
         """
@@ -43,7 +33,6 @@ class Bot(Player):
         else:
             self.direction = -1 
         print("best_spot = ", self.best_spot)
-
 
     def predict_move(self, gameball):
         angle = math.radians(gameball.vel.angle_to(vec(1, 0)))

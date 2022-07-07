@@ -190,14 +190,9 @@ class Player(pg.sprite.Sprite):
         mag = ball.vel.magnitude()
         if self.circle_2_circle_overlap(ball):
             if self == bot:
-                print("angle2 =", degrees(atan2(dy, dx)))
-                best_angle = ball.predict_angle(
-                    ball.pos.x, 
-                    self.x_to_reach, 
-                    HEIGHT - ball.pos.y - ball.r, 
-                    BALL_GRAVITY, 
-                    mag)
-                print("best_angle =", degrees(best_angle))
+                print("mag collision =", mag, "ballposx collision =", ball.pos.x)
+                best_angle = ball.predict_angle(ball.pos.x, self.x_to_reach)
+                print("collision best_angle =", degrees(best_angle))
                 ball.vel.x = mag * cos(best_angle)
                 ball.vel.y = mag * -sin(best_angle)
             else:
