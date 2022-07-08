@@ -55,14 +55,11 @@ class Game:
         self.moving_platform = Obstacle(self, *MOVING_PLATFORM_SETTINGS) # Moving platform
         # Adding to sprite groups
         # self.balls.add(self.player, self.ball, self.bot)
-        self.balls.add(self.ball, self.bot)
+        self.balls.add(self.bot, self.player, self.ball)
         self.obstacles.add(self.net)
         # IDK
         self.ball.drop()
-        h_range = self.ball.predict_h_range()
-        landing_speed = self.ball.predict_speed(HEIGHT - self.ball.r)
-        self.ball.best_angle = self.ball.predict_angle(h_range, self.bot.x_to_reach, 14.399000000000012)
-        self.bot.predict_best_spot(h_range, self.ball.best_angle)
+        self.bot.predict_move()
     
     def run(self):
         # Game loop
@@ -116,7 +113,7 @@ class Game:
         self.bot.pos.x = BOT_INIT_X
         self.bot.pos.y = BOT_INIT_Y
         self.bot.vel = vec(0, 0)
-        self.bot.ball_x = None
+        self.bot.spot = None
         self.bot.direction = 0
         # Ball game
         self.ball.pos.x = ball_init_x
@@ -134,7 +131,7 @@ class Game:
         if not self.start_round:
             self.display_message(self.screen, *START_ROUND_SETTINGS)
         self.display_infos()
-        # pg.draw.circle(self.screen, self.player.color, self.player.pos, self.player.r)
+        pg.draw.circle(self.screen, self.player.color, self.player.pos, self.player.r)
         pg.draw.circle(self.screen, self.ball.color, self.ball.pos, self.ball.r)
         pg.draw.circle(self.screen, self.bot.color, self.bot.pos, self.bot.r)  
         for pos in self.ball.trajectory[::7]:
@@ -160,7 +157,7 @@ class Game:
             True, 
             WHITE)
         scores_text_rect = fps_text.get_rect()
-        scores_text_rect.centerx = WIDTH * 0.5
+        scores_text_rect.centerx = WIDTH*0.5
         scores_text_rect.top = 5 
         # Drawing to screen
         self.screen.blit(fps_text, fps_text_rect)

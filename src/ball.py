@@ -37,7 +37,7 @@ class Ball(Player):
         # Setting new velocity
         self.vel.x = mag * cos(angle)
         self.vel.y = mag * -sin(angle)
-
+        
     def predict_h_range(self, angle=None):
         if not angle:
             angle = radians(self.vel.angle_to(vec(1, 0)))
@@ -54,16 +54,21 @@ class Ball(Player):
         print("range =", hR)
         return int(hR)
 
-    def predict_angle(self, x0, xf, v=None):
+    def predict_x_pos(self, x0, tf):
+        return x0 + self.vel.x*tf
+
+    def predict_y_pos(self, y0, tf):
+        g = BALL_GRAVITY
+        return y0 - self.vel.y*tf + g*0.5*tf**2
+
+    def predict_angle(self, x0, xf, y0=None, v=None):
         """
         TODO
         """
-        y0 = HEIGHT - self.pos.y - self.r
-        yy = HEIGHT - 2*BOT_RADIUS
-        g = BALL_GRAVITY
+        if not y0: y0 = HEIGHT - self.pos.y - self.r
         if not v: v = self.vel.magnitude()
-        print("y0 =", y0, "x0 =", x0, "xf =", xf, "v =", v)
-        print("yy =", yy)
+        g = BALL_GRAVITY
+        # print("y0 =", y0, "x0 =", x0, "xf =", xf, "v =", v)
         try:
             c1 = (g*(xf-x0)**2/v**2 - y0) / sqrt(y0**2 + (xf-x0)**2)
             c1 = acos(c1)
@@ -75,12 +80,11 @@ class Ball(Player):
             angle = (c1+c2) * 0.5
             return pi - angle if xf <= x0 else angle
 
-    def predict_speed(self, yf):
+    def predict_time(self, yf):
         """
         TODO
         """
         y0 = self.pos.y
-        disp_y = yf - y0
         g = BALL_GRAVITY
         # Solving quadratic equation
         a = -g*0.5
@@ -95,12 +99,16 @@ class Ball(Player):
         else:
             t1 = (-b-sqrt(delta)) / (2*a)
             t2 = (-b+sqrt(delta)) / (2*a)
-            tf = t1 if t1 > 0 else t2
-            vy = self.vel.y + self.acc.y * tf
-            # Computing velocity magnitude
-            mag = sqrt(self.vel.x**2 + vy**2)
-            print("mag =", mag)
-            return mag
+            tf = t1 if t1 >= 0 else t2
+            return tf
+
+    def predict_speed(self, tf):
+        """
+        TODO
+        """
+        vy = self.vel.y + self.acc.y * tf
+        speed = sqrt(self.vel.x**2 + vy**2)
+        return speed
     
     def predict_trajectory(self, h_range, angle):
         """

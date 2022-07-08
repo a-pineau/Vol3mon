@@ -19,34 +19,27 @@ class Bot(Player):
         super().__init__(game, r, x, y, vel, acc, color)
         self.ball_x = None
         self.direction = 0
-        self.x_to_reach = 350
-        self.best_spot = None
+        self.spot = None
         self.ball = self.game.ball
 
-    def predict_best_spot(self, x, best_angle):
+    def predict_move(self):
         """
         TODO
         """
-        self.best_spot = x + (self.ball.r + self.r) * tan(best_angle - pi*0.5)
-        if self.best_spot > self.pos.x:
-            self.direction = 1
-        else:
-            self.direction = -1 
-        print("best_spot = ", self.best_spot)
-
-    def predict_move(self, gameball):
-        angle = math.radians(gameball.vel.angle_to(vec(1, 0)))
-        self.ball_x = gameball.predict_h_range(angle)
-        gameball.predict_trajectory(self.ball_x, angle)
-        if self.is_in_bot_zone(self.ball_x):
-            pass
+        tf = self.ball.predict_time(HEIGHT-2*self.r-self.ball.r)
+        ball_spot = self.ball.predict_x_pos(self.ball.pos.x, tf) 
+        print("ball_spot =", ball_spot)
+        if self.is_in_bot_zone(ball_spot):
+            print(("nieyz"))
+            self.spot = ball_spot + self.r
+            self.direction = 1 if self.spot > self.pos.x else -1
 
     def update(self):
         self.vel.x = 0
-        if self.best_spot:
-            if self.pos.x < self.best_spot and self.direction == -1:
+        if self.spot:
+            if self.pos.x < self.spot and self.direction == -1:
                 self.direction = 0
-            if self.pos.x > self.best_spot and self.direction == 1:
+            if self.pos.x > self.spot and self.direction == 1:
                 self.direction = 0
             self.vel.x += self.direction * BOT_X_SPEED
             # Updating velocity
@@ -57,14 +50,14 @@ class Bot(Player):
             # Screen collisions (horitonzal)
             self.screen_collisions("horizontal", False)
             # Obstacles collisions (horizontal)
-            # self.obstacles_collisions("horizontal", False)
+            self.obstacles_collisions("horizontal", False)
             # Updating y pos
             self.pos.y += self.vel.y + 0.5 * self.acc.y
             self.rect.centery = self.pos.y
             # Screen collisions (vertical)
             self.screen_collisions("vertical", False)
             # Obstacles collisions (vertical)
-            # self.obstacles_collisions("vertical", False) 
+            self.obstacles_collisions("vertical", False) 
             # Ball collision (on floor)
         if self.is_standing():
             self.on_floor_ball_collision()

@@ -98,7 +98,7 @@ class Player(pg.sprite.Sprite):
                 self.rect.bottom = HEIGHT
                 self.pos.y = self.rect.centery
                 if is_ball:
-                    print("landing =", self.rect.centerx)
+                    # print("landing =", self.rect.centerx)
                     self.vel.y *= -1 
                 else: 
                     self.vel.y *= 0
@@ -145,9 +145,10 @@ class Player(pg.sprite.Sprite):
                             self.rect.top = sprite.rect.bottom
                             self.pos.y = self.rect.centery
                             self.vel.y *= -1
-            # Predicting landing if collision between obstacles and ball game
             if is_ball:
-                self.game.bot.predict_move(self.game.ball)
+                # Predicting bot's move
+                self.game.bot.predict_move()
+
 
     def on_air_ball_collision(self, other):
         balls_in_the_air = not self.is_standing() and not other.is_standing()
@@ -160,10 +161,10 @@ class Player(pg.sprite.Sprite):
             # The distance has already been computed, can simplify here
             d = pg.math.Vector2.magnitude(x1 - x2)
             disp = (d - R) * 0.5
-            n = vec(x2[0] - x1[0], x2[1] - x1[1])  
+            n = vec(x2[0]-x1[0], x2[1]-x1[1])  
             # Computing new velocities
-            n_v1 = v1 - 2*m2 / M * vec.dot(v1 - v2, x1 - x2) * (x1 - x2) / d**2
-            n_v2 = v2 - 2*m1 / M * vec.dot(v2 - v1, x2 - x1) * (x2 - x1) / d**2
+            n_v1 = v1 - 2*m2 / M * vec.dot(v1-v2, x1-x2) * (x1-x2) / d**2
+            n_v2 = v2 - 2*m1 / M * vec.dot(v2-v1, x2-x1) * (x2-x1) / d**2
             self.vel = n_v1
             other.vel = n_v2
             # Dealing with sticky collisions issues
@@ -172,38 +173,32 @@ class Player(pg.sprite.Sprite):
             other.pos.x -= disp * (n.x / d) 
             other.pos.y -= disp * (n.y / d)
             # Predicting bot's move
-            self.game.bot.predict_move(self.game.ball)
+            self.game.bot.predict_move()
 
     def on_floor_ball_collision(self):
         """
         TODO
         """
-        ball = self.game.ball # Sake of readability
+        # Sake of readability
+        ball = self.game.ball 
         bot = self.game.bot
-        dx = ball.pos.x - self.pos.x
-        dy = ball.pos.y - self.pos.y
-        R = self.r + ball.r
-        d = pg.math.Vector2.magnitude(ball.pos - self.pos)
-        disp = (d - R) * 0.5
-        n = vec(dx, dy)
-        angle2 = abs(atan2(dy, dx))
-        mag = ball.vel.magnitude()
         if self.circle_2_circle_overlap(ball):
-            if self == bot:
-                print("mag collision =", mag, "ballposx collision =", ball.pos.x)
-                best_angle = ball.predict_angle(ball.pos.x, self.x_to_reach)
-                print("collision best_angle =", degrees(best_angle))
-                ball.vel.x = mag * cos(best_angle)
-                ball.vel.y = mag * -sin(best_angle)
-            else:
-                ball.vel.x = mag * cos(angle2)
-                ball.vel.y = mag * -sin(angle2)
-            ball.pos.x -= disp * (n.x / d)
-            ball.pos.y -= disp * (n.y / d)
-            # self.game.bot.predict_move(ball)
-            # ball.compute_y_pos2(300, angle2)
-            # Predicting bot's move
-            # bot.predict_move(ball)
+            dx = ball.pos.x - self.pos.x
+            dy = ball.pos.y - self.pos.y
+            R = self.r + ball.r
+            d = pg.math.Vector2.magnitude(ball.pos - self.pos)
+            disp = (d - R) * 0.5
+            n = vec(dx, dy)
+            angle = abs(atan2(dy, dx))
+            # Computing new velocities
+            mag = ball.vel.magnitude()
+            ball.vel.x = mag*cos(angle)
+            ball.vel.y = mag*-sin(angle)
+            # Dealing with sticky collisions
+            ball.pos.x -= disp*(n.x / d)
+            ball.pos.y -= disp*(n.y / d)
+            # Predicting bot's move 
+            bot.predict_move()
 
     def end_round_conditions(self) -> bool:
         # If the ball hits the floor and is in the player/bot zone
