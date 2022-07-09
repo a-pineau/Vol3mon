@@ -13,8 +13,6 @@ from itertools import cycle
 from settings import *
 vec = pg.math.Vector2
 
-
-# BALL -------------------------------------------------------
 class Player(pg.sprite.Sprite):
     # -----------
     def __init__(self, game, r, x, y, vel, acc, color):
@@ -69,7 +67,7 @@ class Player(pg.sprite.Sprite):
 
     @staticmethod
     def is_in_bot_zone(x) -> bool:
-        return x >= (WIDTH + NET_WIDTH) * 0.5 and x < WIDTH
+        return x >= (WIDTH + NET_WIDTH) * 0.5 
        
     def jump(self) -> None:  
         # Can only jump on platforms or floor
@@ -107,9 +105,9 @@ class Player(pg.sprite.Sprite):
                 self.rect.top = 0
                 self.pos.y = self.rect.centery
                 self.vel.y *= -1
+        # Checking if a collision happened
         if is_ball and old_vel != (int(self.vel.x), int(self.vel.y)):
-            pass
-            # self.game.bot.predict_move(self.game.ball)
+            self.game.bot.predict_move()
 
     def obstacles_collisions(self, orientation, is_ball):
         """
@@ -234,16 +232,16 @@ class Player(pg.sprite.Sprite):
             elif keys[pg.K_LEFT]:
                 self.vel.x += -PLAYER_X_SPEED
         # Updating velocity
-        self.vel += self.acc
+        self.vel += self.acc 
         # Updating x pos
-        self.pos.x += self.vel.x + 0.5 * self.acc.x * self.game.dt
+        self.pos.x += self.vel.x * self.game.dt + 0.5 * self.acc.x
         self.rect.centerx = self.pos.x
         # # Screen collisions (horitonzal)
         self.screen_collisions("horizontal", is_ball)
         # Obstacles collisions (horizontal)
         self.obstacles_collisions("horizontal", is_ball)
         # Updating y pos
-        self.pos.y += self.vel.y + 0.5 * self.acc.y * self.game.dt
+        self.pos.y += self.vel.y + 0.5 * self.acc.y
         self.rect.centery = self.pos.y
         # Screen collisions (vertical)
         self.screen_collisions("vertical", is_ball)

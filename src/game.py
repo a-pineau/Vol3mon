@@ -1,9 +1,8 @@
 """Implements the game loop and handles the user's events."""
 
 import os
-import random
+import time
 import pygame as pg
-import math
 
 from itertools import cycle
 from player import Player
@@ -16,6 +15,7 @@ from PyQt5.QtWidgets import (QMainWindow, QApplication, QGridLayout, QWidget, QL
 
 vec = pg.math.Vector2
 
+
 # Manually places the window
 os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (100, 50)
 
@@ -26,7 +26,7 @@ class Game:
         self.screen = pg.display.set_mode([WIDTH, HEIGHT])
         pg.display.set_caption(TITLE)
         self.clock = pg.time.Clock()
-        self.dt = self.clock.tick(FPS)*1e-3
+        self.last_time = time.time()
         self.running = True  
         self.start_round = False
         self.n_frame = 0
@@ -55,11 +55,16 @@ class Game:
         self.moving_platform = Obstacle(self, *MOVING_PLATFORM_SETTINGS) # Moving platform
         # Adding to sprite groups
         # self.balls.add(self.player, self.ball, self.bot)
-        self.balls.add(self.bot, self.player, self.ball)
+        self.balls.add(self.player)
         self.obstacles.add(self.net)
         # IDK
         self.ball.drop()
         self.bot.predict_move()
+        
+    def delta_time(self):
+        current_time = time.time()
+        self.dt = current_time - self.last_time
+        self.last_time = current_time
     
     def run(self):
         # Game loop
@@ -68,6 +73,7 @@ class Game:
         while self.playing: 
             self.n_frame += 1
             self.clock.tick(FPS)
+            self.delta_time()
             self.events()
             self.update(ball_init) 
             self.display()
@@ -77,11 +83,11 @@ class Game:
         if self.start_round:
             self.balls.update()
             self.obstacles.update()
-            # for sprite in self.balls.sprites():
-            #     if sprite.end_round_conditions():
-            #         self.start_round = False
-            #         self.initialize_round(next(ball_init))
-            #         return None
+            for sprite in self.balls.sprites():
+                if sprite.end_round_conditions():
+                    self.start_round = False
+                    self.initialize_round(next(ball_init))
+                    return None
                     
     def events(self):
         # Game loop - events

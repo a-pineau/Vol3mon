@@ -55,11 +55,11 @@ class Ball(Player):
         return int(hR)
 
     def predict_x_pos(self, x0, tf):
-        return x0 + self.vel.x*tf
+        if tf: return x0 + self.vel.x*tf
 
     def predict_y_pos(self, y0, tf):
         g = BALL_GRAVITY
-        return y0 - self.vel.y*tf + g*0.5*tf**2
+        if tf: return y0 - self.vel.y*tf + g*0.5*tf**2
 
     def predict_angle(self, x0, xf, y0=None, v=None):
         """
