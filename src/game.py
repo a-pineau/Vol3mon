@@ -29,6 +29,7 @@ class Game:
         self.last_time = time.time()
         self.running = True  
         self.start_round = False
+        self.stop_timer = False
         self.n_frame = 0
         self.scores = {"Player": 0, "Bot": 0}
     
@@ -55,11 +56,12 @@ class Game:
         self.moving_platform = Obstacle(self, *MOVING_PLATFORM_SETTINGS) # Moving platform
         # Adding to sprite groups
         # self.balls.add(self.player, self.ball, self.bot)
-        self.balls.add(self.player)
-        self.obstacles.add(self.net)
+        self.balls.add(self.ball)
+        # self.obstacles.add(self.net)
         # IDK
-        self.ball.drop()
-        self.bot.predict_move()
+        # self.ball.drop()
+        # self.ball.predict_h_range()
+        # self.bot.predict_move()
         
     def delta_time(self):
         current_time = time.time()
@@ -72,8 +74,8 @@ class Game:
         ball_init = cycle([BOT_INIT_X, PLAYER_INIT_X])
         while self.playing: 
             self.n_frame += 1
-            self.clock.tick(FPS)
-            self.delta_time()
+            # self.delta_time()
+            self.dt = self.clock.tick(FPS)*1e-3
             self.events()
             self.update(ball_init) 
             self.display()
@@ -81,13 +83,15 @@ class Game:
     def update(self, ball_init):
         # Game loop update
         if self.start_round:
+            if not self.stop_timer: self.timer += self.dt
             self.balls.update()
             self.obstacles.update()
             for sprite in self.balls.sprites():
                 if sprite.end_round_conditions():
-                    self.start_round = False
-                    self.initialize_round(next(ball_init))
-                    return None
+                    pass
+                    # self.start_round = False
+                    # self.initialize_round(next(ball_init))
+                    # return None
                     
     def events(self):
         # Game loop - events
@@ -102,6 +106,7 @@ class Game:
                         self.player.jump()
                     else:
                         self.start_round = True
+                        self.timer = 0
                 elif event.key == pg.K_q:
                     if self.playing:
                         self.playing = False
@@ -125,8 +130,7 @@ class Game:
         self.ball.pos.x = ball_init_x
         self.ball.pos.y = BALL_INIT_Y
         self.ball.vel = vec(BALL_INIT_VEL_X, BALL_INIT_VEL_Y)
-        self.ball.trajectory.clear()
-        h_range = self.ball.drop()
+        self.ball.drop()
                              
     def display(self):
         """
@@ -134,12 +138,19 @@ class Game:
         """
         self.screen.fill(BACKGROUND)
         self.obstacles.draw(self.screen)
+        if self.start_round:
+            timer_font = pg.font.SysFont("Calibri", 30)
+            timer_text = timer_font.render(f"Timer: {round(self.timer, 3)}s", True, WHITE)
+            timer_rect = timer_text.get_rect()
+            timer_rect.centerx = WIDTH*0.5
+            timer_rect.centery = HEIGHT*0.4
+            self.screen.blit(timer_text, timer_rect)
         if not self.start_round:
             self.display_message(self.screen, *START_ROUND_SETTINGS)
         self.display_infos()
-        pg.draw.circle(self.screen, self.player.color, self.player.pos, self.player.r)
+        # pg.draw.circle(self.screen, self.player.color, self.player.pos, self.player.r)
         pg.draw.circle(self.screen, self.ball.color, self.ball.pos, self.ball.r)
-        pg.draw.circle(self.screen, self.bot.color, self.bot.pos, self.bot.r)  
+        # pg.draw.circle(self.screen, self.bot.color, self.bot.pos, self.bot.r)  
         for pos in self.ball.trajectory[::7]:
             pg.draw.circle(self.screen, GREEN3, pos, 2)
         pg.display.flip()  

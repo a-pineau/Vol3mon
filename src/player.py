@@ -27,7 +27,7 @@ class Player(pg.sprite.Sprite):
         self.acc = acc
         self.color = color
         self.m = 3 # TODO
-        self.rect = pg.Rect(self.pos.x - r, self.pos.y - r, self.r*2, self.r*2)
+        self.rect = pg.Rect(self.pos.x-r, self.pos.y-r, self.r*2, self.r*2)
         self.old_rect = self.rect.copy()
         self.obstacles = self.game.obstacles
 
@@ -82,6 +82,7 @@ class Player(pg.sprite.Sprite):
         if orientation == "horizontal":
             # Right border
             if self.rect.right > WIDTH:
+                self.game.stop_timer = True
                 self.rect.right = WIDTH
                 self.pos.x = self.rect.centerx
                 if is_ball: self.vel.x *= -1
@@ -221,6 +222,7 @@ class Player(pg.sprite.Sprite):
         """
         Updates positions and applies collisions (if any)
         """
+        print("dt =", self.game.dt)
         is_ball = (self == self.game.ball)
         # Rect at previous frame
         self.old_rect = self.rect.copy()
@@ -231,17 +233,18 @@ class Player(pg.sprite.Sprite):
                 self.vel.x += PLAYER_X_SPEED
             elif keys[pg.K_LEFT]:
                 self.vel.x += -PLAYER_X_SPEED
-        # Updating velocity
-        self.vel += self.acc 
+        # Updating velocity (no change in the horizontal component)
+        self.vel.y += self.acc.y*1
         # Updating x pos
-        self.pos.x += self.vel.x * self.game.dt + 0.5 * self.acc.x
+        self.pos.x += self.vel.x*self.game.dt
         self.rect.centerx = self.pos.x
         # # Screen collisions (horitonzal)
         self.screen_collisions("horizontal", is_ball)
         # Obstacles collisions (horizontal)
         self.obstacles_collisions("horizontal", is_ball)
         # Updating y pos
-        self.pos.y += self.vel.y + 0.5 * self.acc.y
+        print("vely =", self.vel.y)
+        self.pos.y += self.vel.y*self.game.dt + 0.5*self.acc.y*self.game.dt**2
         self.rect.centery = self.pos.y
         # Screen collisions (vertical)
         self.screen_collisions("vertical", is_ball)

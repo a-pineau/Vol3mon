@@ -46,6 +46,7 @@ class Ball(Player):
         y0 = HEIGHT - self.pos.y - self.r
         v = self.vel.magnitude()
         g = BALL_GRAVITY
+        print("c =",  sqrt((v * sin(angle))**2 + 2 * g * y0))
         # d = V₀ * cos(α) * [V₀ * sin(α) + √((V₀ * sin(α))² + 2 * g * h)] / g
         hR = v * cos(angle) 
         hR *= v * sin(angle) + sqrt((v * sin(angle))**2 + 2 * g * y0)
@@ -68,9 +69,10 @@ class Ball(Player):
         if not y0: y0 = HEIGHT - self.pos.y - self.r
         if not v: v = self.vel.magnitude()
         g = BALL_GRAVITY
-        # print("y0 =", y0, "x0 =", x0, "xf =", xf, "v =", v)
+        # print("y0 =", y0, "x0 =", x0, "xf =", xf, "g =", g, "v =", v)
         try:
             c1 = (g*(xf-x0)**2/v**2 - y0) / sqrt(y0**2 + (xf-x0)**2)
+            print("c1 =", c1)
             c1 = acos(c1)
         except ValueError:
             print("Impossible to reach!")
@@ -94,7 +96,7 @@ class Ball(Player):
         try:
             sqrt(delta)
         except ValueError:
-            print("The value of yf can't be reached! Returning None value.")
+            # print("The value of yf can't be reached! Returning None value.")
             return None
         else:
             t1 = (-b-sqrt(delta)) / (2*a)
@@ -110,11 +112,13 @@ class Ball(Player):
         speed = sqrt(self.vel.x**2 + vy**2)
         return speed
     
-    def predict_trajectory(self, h_range, angle):
+    def predict_trajectory(self):
         """
         TODO
         """
         self.trajectory.clear()
+        h_range = self.predict_h_range()
+        angle = radians(self.vel.angle_to(vec(1, 0)))
         x0 = int(self.pos.x)
         y0 = self.pos.y
         v = self.vel.magnitude()
