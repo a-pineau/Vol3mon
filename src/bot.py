@@ -25,14 +25,23 @@ class Bot(Player):
     def predict_move(self):
         """
         TODO
+
+        Parameters
+        ----------
         """
-        tf = self.ball.predict_time(HEIGHT-2*self.r-self.ball.r)
-        ball_spot = self.ball.predict_x_pos(self.ball.pos.x, tf) 
+        tf = self.ball.predict_time(HEIGHT - 2*self.r - self.ball.r)
+        ball_spot = self.ball.predict_x(tf) 
         if ball_spot and self.is_in_bot_zone(ball_spot):
-            self.spot = ball_spot + self.r
+            self.spot = ball_spot + self.ball.r + self.r*0.5
             self.direction = 1 if self.spot > self.pos.x else -1
 
     def update(self):
+        """
+        TODO
+
+        Parameters
+        ----------
+        """
         self.vel.x = 0
         if self.spot:
             if self.pos.x < self.spot and self.direction == -1:
@@ -42,10 +51,8 @@ class Bot(Player):
             self.vel.x += self.direction * BOT_X_SPEED
             # Updating velocity
             self.vel += self.acc
-            self.vel *= self.game.dt
             # Updating x pos
             self.pos.x += self.vel.x + 0.5 * self.acc.x
-            self.pos.x *= self.game.dt
             self.rect.centerx = self.pos.x
             # Screen collisions (horitonzal)
             self.screen_collisions("horizontal", False)
@@ -53,7 +60,6 @@ class Bot(Player):
             self.obstacles_collisions("horizontal", False)
             # Updating y pos
             self.pos.y += self.vel.y + 0.5 * self.acc.y
-            self.pos.y *= self.game.dt
             self.rect.centery = self.pos.y
             # Screen collisions (vertical)
             self.screen_collisions("vertical", False)

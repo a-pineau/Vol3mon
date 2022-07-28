@@ -32,9 +32,12 @@ class Player(pg.sprite.Sprite):
         self.obstacles = self.game.obstacles
 
     # Should be static or in another file
-    def circle_2_circle_overlap(self, other) -> bool:
+    def circles_overlap(self, other) -> bool:
         """
-        Checks if two circles are overlapping
+        Checks if two circles are overlapping.
+
+        Parameters
+        ----------
         """
         return self.pos.distance_to(other.pos) < self.r + other.r
 
@@ -62,6 +65,11 @@ class Player(pg.sprite.Sprite):
         return standing
 
     @staticmethod
+    def distance(p1, p2):
+        """Returns the distance between two points p1, p2."""
+        return math.sqrt((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)
+
+    @staticmethod
     def is_in_player_zone(x) -> bool:
         return x <= (WIDTH - NET_WIDTH) * 0.5 and x > 0
 
@@ -77,6 +85,10 @@ class Player(pg.sprite.Sprite):
     def screen_collisions(self, orientation, is_ball) -> None:
         """
         Deals with screen collisions (left/right/top/bottom borders)
+
+        Parameters
+        ----------
+
         """
         old_vel = (int(self.vel.x), int(self.vel.y))
         if orientation == "horizontal":
@@ -97,7 +109,8 @@ class Player(pg.sprite.Sprite):
                 self.rect.bottom = HEIGHT
                 self.pos.y = self.rect.centery
                 if is_ball:
-                    # print("landing =", self.rect.centerx)
+                    print("landing vel =", self.vel.magnitude())
+                    print("landing =", self.rect.centerx)
                     self.vel.y *= -1 
                 else: 
                     self.vel.y *= 0
@@ -108,11 +121,16 @@ class Player(pg.sprite.Sprite):
                 self.vel.y *= -1
         # Checking if a collision happened
         if is_ball and old_vel != (int(self.vel.x), int(self.vel.y)):
+            self.predict_trajectory()
             self.game.bot.predict_move()
 
     def obstacles_collisions(self, orientation, is_ball):
         """
-        Deals with side collisions with obstacles
+        Deals with side collisions with obstacles.
+
+        Parameters
+        ----------
+
         """
         collisions_sprites = pg.sprite.spritecollide(self, self.obstacles, False)
         if collisions_sprites:
@@ -146,12 +164,18 @@ class Player(pg.sprite.Sprite):
                             self.vel.y *= -1
             if is_ball:
                 # Predicting bot's move
+                self.predict_trajectory()
                 self.game.bot.predict_move()
 
-
     def on_air_ball_collision(self, other):
+        """
+        TODO
+
+        Parameters
+        ----------
+        """
         balls_in_the_air = not self.is_standing() and not other.is_standing()
-        if self.circle_2_circle_overlap(other) and balls_in_the_air: 
+        if self.circles_overlap(other) and balls_in_the_air: 
             x1, x2 = self.pos, other.pos
             m1, m2 = self.r**2, other.r**2
             M = m1 + m2
@@ -177,11 +201,15 @@ class Player(pg.sprite.Sprite):
     def on_floor_ball_collision(self):
         """
         TODO
+
+        Parameters
+        ----------
         """
         # Sake of readability
         ball = self.game.ball 
         bot = self.game.bot
-        if self.circle_2_circle_overlap(ball):
+        if self.circles_overlap(ball):
+            print("pos bally=", ball.pos.y)
             dx = ball.pos.x - self.pos.x
             dy = ball.pos.y - self.pos.y
             R = self.r + ball.r
@@ -196,10 +224,17 @@ class Player(pg.sprite.Sprite):
             # Dealing with sticky collisions
             ball.pos.x -= disp*(n.x / d)
             ball.pos.y -= disp*(n.y / d)
-            # Predicting bot's move 
-            bot.predict_move()
+            # Predicting bot move 
+            # ball.predict_trajectory()
+            # bot.predict_move()
 
     def end_round_conditions(self) -> bool:
+        """
+        TODO
+
+        Parameters
+        ----------
+        """
         # If the ball hits the floor and is in the player/bot zone
         if self == self.game.ball:
             if self.is_standing():
@@ -220,9 +255,11 @@ class Player(pg.sprite.Sprite):
 
     def update(self):
         """
-        Updates positions and applies collisions (if any)
+        Updates positions and applies collisions (if any).
+
+        Parameters
+        ----------
         """
-        print("dt =", self.game.dt)
         is_ball = (self == self.game.ball)
         # Rect at previous frame
         self.old_rect = self.rect.copy()
@@ -234,17 +271,16 @@ class Player(pg.sprite.Sprite):
             elif keys[pg.K_LEFT]:
                 self.vel.x += -PLAYER_X_SPEED
         # Updating velocity (no change in the horizontal component)
-        self.vel.y += self.acc.y*1
+        self.vel.y += self.acc.y
         # Updating x pos
-        self.pos.x += self.vel.x*self.game.dt
+        self.pos.x += self.vel.x
         self.rect.centerx = self.pos.x
         # # Screen collisions (horitonzal)
         self.screen_collisions("horizontal", is_ball)
         # Obstacles collisions (horizontal)
         self.obstacles_collisions("horizontal", is_ball)
         # Updating y pos
-        print("vely =", self.vel.y)
-        self.pos.y += self.vel.y*self.game.dt + 0.5*self.acc.y*self.game.dt**2
+        self.pos.y += self.vel.y + 0.5*self.acc.y
         self.rect.centery = self.pos.y
         # Screen collisions (vertical)
         self.screen_collisions("vertical", is_ball)

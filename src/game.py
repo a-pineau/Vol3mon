@@ -55,13 +55,23 @@ class Game:
         self.net = Obstacle(self, *NET_SETTINGS) # Net
         self.moving_platform = Obstacle(self, *MOVING_PLATFORM_SETTINGS) # Moving platform
         # Adding to sprite groups
-        # self.balls.add(self.player, self.ball, self.bot)
         self.balls.add(self.ball)
         # self.obstacles.add(self.net)
         # IDK
         # self.ball.drop()
-        # self.ball.predict_h_range()
+        # tf = self.ball.predict_time(HEIGHT - self.ball.r)
+        # print(tf)
+        # t = 0
+        # y = self.ball.pos.y
+        # x = self.ball.pos.x
         # self.bot.predict_move()
+        # while y < 600:
+        #     d = self.ball.distance((x, y), (self.bot.spot, self.bot.pos.y))
+        #     if d < self.ball.r + self.bot.r:
+        #         print("erf =", y)
+        #         break
+        #     y = self.ball.predict_y(t)
+        #     t += 0.1
         
     def delta_time(self):
         current_time = time.time()
@@ -83,7 +93,8 @@ class Game:
     def update(self, ball_init):
         # Game loop update
         if self.start_round:
-            if not self.stop_timer: self.timer += self.dt
+            if not self.stop_timer: 
+                self.timer += self.dt
             self.balls.update()
             self.obstacles.update()
             for sprite in self.balls.sprites():
@@ -112,7 +123,7 @@ class Game:
                         self.playing = False
                     self.running = False
 
-    def initialize_round(self, ball_init_x):
+    def setup_round(self, ball_init_x):
         """
         TODO
         """
@@ -139,18 +150,19 @@ class Game:
         self.screen.fill(BACKGROUND)
         self.obstacles.draw(self.screen)
         if self.start_round:
-            timer_font = pg.font.SysFont("Calibri", 30)
-            timer_text = timer_font.render(f"Timer: {round(self.timer, 3)}s", True, WHITE)
-            timer_rect = timer_text.get_rect()
-            timer_rect.centerx = WIDTH*0.5
-            timer_rect.centery = HEIGHT*0.4
-            self.screen.blit(timer_text, timer_rect)
+            pass
+            # timer_font = pg.font.SysFont("Calibri", 30)
+            # timer_text = timer_font.render(f"Timer: {round(self.timer, 3)}s", True, WHITE)
+            # timer_rect = timer_text.get_rect()
+            # timer_rect.centerx = WIDTH*0.5
+            # timer_rect.centery = HEIGHT*0.4
+            # self.screen.blit(timer_text, timer_rect)
         if not self.start_round:
             self.display_message(self.screen, *START_ROUND_SETTINGS)
         self.display_infos()
         # pg.draw.circle(self.screen, self.player.color, self.player.pos, self.player.r)
         pg.draw.circle(self.screen, self.ball.color, self.ball.pos, self.ball.r)
-        # pg.draw.circle(self.screen, self.bot.color, self.bot.pos, self.bot.r)  
+        pg.draw.circle(self.screen, self.bot.color, self.bot.pos, self.bot.r)  
         for pos in self.ball.trajectory[::7]:
             pg.draw.circle(self.screen, GREEN3, pos, 2)
         pg.display.flip()  
@@ -173,7 +185,7 @@ class Game:
             f"{score_player}   -   {score_bot}", 
             True, 
             WHITE)
-        scores_text_rect = fps_text.get_rect()
+        scores_text_rect = scores_text.get_rect()
         scores_text_rect.centerx = WIDTH*0.5
         scores_text_rect.top = 5 
         # Drawing to screen
