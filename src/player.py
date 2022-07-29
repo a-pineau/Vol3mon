@@ -120,7 +120,6 @@ class Player(pg.sprite.Sprite):
                 self.vel.y *= -1
         # Checking if a collision happened
         if is_ball and old_vel != (int(self.vel.x), int(self.vel.y)):
-            self.predict_trajectory()
             self.game.bot.predict_move()
 
     def obstacles_collisions(self, orientation, is_ball):
@@ -163,7 +162,6 @@ class Player(pg.sprite.Sprite):
                             self.vel.y *= -1
             if is_ball:
                 # Predicting bot's move
-                self.predict_trajectory()
                 self.game.bot.predict_move()
 
     def on_air_ball_collision(self, other):
@@ -194,8 +192,6 @@ class Player(pg.sprite.Sprite):
             self.pos.y += disp * (n.y / d)
             other.pos.x -= disp * (n.x / d) 
             other.pos.y -= disp * (n.y / d)
-            # Ball trajectory
-            other.predict_trajectory()
             # Predicting bot's move
             self.game.bot.predict_move()
 
@@ -210,7 +206,6 @@ class Player(pg.sprite.Sprite):
         ball = self.game.ball 
         bot = self.game.bot
         if self.circles_overlap(ball):
-            print("pos bally=", ball.pos.y)
             dx = ball.pos.x - self.pos.x
             dy = ball.pos.y - self.pos.y
             R = self.r + ball.r
@@ -223,10 +218,10 @@ class Player(pg.sprite.Sprite):
             ball.vel.x = mag*cos(angle)
             ball.vel.y = mag*-sin(angle)
             # Dealing with sticky collisions
+            self.pos.x += disp*(n.x / d)
+            self.pos.y += disp*(n.y / d)
             ball.pos.x -= disp*(n.x / d)
             ball.pos.y -= disp*(n.y / d)
-            # Ball trajectory
-            ball.predict_trajectory()
             # Predicting bot move 
             bot.predict_move()
 

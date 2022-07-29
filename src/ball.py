@@ -39,7 +39,6 @@ class Ball(Player):
         v = self.vel.magnitude()
         self.vel.x = v * cos(angle)
         self.vel.y = v * -sin(angle)
-        self.predict_trajectory()
         
     def predict_h_range(self, angle=None):
         """
@@ -165,43 +164,8 @@ class Ball(Player):
         vy = self.vel.y + self.acc.y*t
         speed = sqrt(self.vel.x**2 + vy**2)
         return speed
-    
-    def predict_trajectory(self, bot_collision=False, num_inc=100):
-        """
-        TODO
-
-        Parameters
-        ----------
-
-        """
-        self.trajectory.clear()
-        xf = self.predict_h_range()
-        angle = radians(self.vel.angle_to(vec(1, 0)))
-        x0, y0 = self.pos.x, self.pos.y
-        v = self.vel.magnitude()
-        g = BALL_GRAVITY
-        rect = pg.Rect(
-            self.pos.x - self.r, self.pos.y - self.r, 
-            self.r*2, self.r*2)
-        if x0 < xf :
-            x_values = np.linspace(x0, xf, num_inc)
-        else:
-            x_values = np.linspace(xf, x0, num_inc)
-        # y = h - [(x - x0) * tan(α) - g * (x - x0)² / (2 * V₀² * cos²(α))]
-        """Note: this isn't exactly the commonly used equation as the numerical value of
-        the y component of the ball position firslty decreases, after collision (due to Pygame's frame). 
-        Also, the shift needs to be taken into consideration (x - x0).
-        """
-        for x in x_values:
-            y = y0 - (x - x0)*tan(angle) + g*(x - x0)**2 / (2*v**2 * cos(angle)**2)
-            rect.center = (x, y)
-            self.trajectory.append((x, y))
-            # Checks for any collision with an obstacle
-            if rect.colliderect(self.game.net):
-                self.game.bot.ball_landing_point = (WIDTH + NET_WIDTH)*0.5
-                return None
-            
-    def predict_trajectory2(self, inc=0.5):
+                
+    def predict_trajectory(self, inc=0.5):
         """
         TODO
 
@@ -219,6 +183,41 @@ class Ball(Player):
             x = self.predict_x(t)
             y = self.predict_y(t)
             self.trajectory.append((x, y))
+
+    # def predict_trajectory(self, bot_collision=False, num_inc=100):
+    #     """
+    #     TODO
+
+    #     Parameters
+    #     ----------
+
+    #     """
+    #     self.trajectory.clear()
+    #     xf = self.predict_h_range()
+    #     angle = radians(self.vel.angle_to(vec(1, 0)))
+    #     x0, y0 = self.pos.x, self.pos.y
+    #     v = self.vel.magnitude()
+    #     g = BALL_GRAVITY
+    #     rect = pg.Rect(
+    #         self.pos.x - self.r, self.pos.y - self.r, 
+    #         self.r*2, self.r*2)
+    #     if x0 < xf :
+    #         x_values = np.linspace(x0, xf, num_inc)
+    #     else:
+    #         x_values = np.linspace(xf, x0, num_inc)
+    #     # y = h - [(x - x0) * tan(α) - g * (x - x0)² / (2 * V₀² * cos²(α))]
+    #     """Note: this isn't exactly the commonly used equation as the numerical value of
+    #     the y component of the ball position firslty decreases, after collision (due to Pygame's frame). 
+    #     Also, the shift needs to be taken into consideration (x - x0).
+    #     """
+    #     for x in x_values:
+    #         y = y0 - (x - x0)*tan(angle) + g*(x - x0)**2 / (2*v**2 * cos(angle)**2)
+    #         rect.center = (x, y)
+    #         self.trajectory.append((x, y))
+    #         # Checks for any collision with an obstacle
+    #         if rect.colliderect(self.game.net):
+    #             self.game.bot.ball_landing_point = (WIDTH + NET_WIDTH)*0.5
+    #             return None
 
 def main():
     pass
