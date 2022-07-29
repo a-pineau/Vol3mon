@@ -32,7 +32,7 @@ class Bot(Player):
         tf = self.ball.predict_time(HEIGHT - 2*self.r - self.ball.r)
         ball_spot = self.ball.predict_x(tf) 
         if ball_spot and self.is_in_bot_zone(ball_spot):
-            self.spot = ball_spot + self.ball.r + self.r*0.5
+            self.spot = ball_spot + self.ball.r + self.r*0.25
             self.direction = 1 if self.spot > self.pos.x else -1
 
     def update(self):

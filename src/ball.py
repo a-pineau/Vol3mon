@@ -18,7 +18,6 @@ class Ball(Player):
     def __init__(self, game, r, x, y, vel, acc, color):
         super().__init__(game, r, x, y, vel, acc, color)
         self.trajectory = []
-        self.predict_trajectory2()
         self.best_angle = None
 
     def drop(self):
@@ -40,6 +39,7 @@ class Ball(Player):
         v = self.vel.magnitude()
         self.vel.x = v * cos(angle)
         self.vel.y = v * -sin(angle)
+        self.predict_trajectory()
         
     def predict_h_range(self, angle=None):
         """
@@ -58,12 +58,12 @@ class Ball(Player):
         y0 = HEIGHT - self.pos.y - self.r
         v = self.vel.magnitude()
         g = BALL_GRAVITY
-        hR = v * cos(angle) 
-        hR *= v * sin(angle) + sqrt((v * sin(angle))**2 + 2 * g * y0)
-        hR /= g
-        hR += x0
-        print("range =", hR)
-        return int(hR)
+        r = v * cos(angle) 
+        r *= v * sin(angle) + sqrt((v * sin(angle))**2 + 2 * g * y0)
+        r /= g
+        r += x0
+        print("range =", r)
+        return int(r)
 
     def predict_x(self, tf):
         """
@@ -92,7 +92,7 @@ class Ball(Player):
         if t is not None:
             y0 = self.pos.y
             g = BALL_GRAVITY
-            return y0 - self.vel.y*t + g*0.5*t**2
+            return y0 + self.vel.y*t + g*0.5*t**2
 
     def predict_angle(self, x0, xf, y0=None, v=None):
         """
@@ -152,7 +152,7 @@ class Ball(Player):
                 return t1
             return t2
 
-    def predict_speed(self, tf):
+    def predict_speed(self, t):
         """
         Predicts speed.
 
@@ -162,11 +162,11 @@ class Ball(Player):
         Returns
         -------
         """
-        vy = self.vel.y + self.acc.y * tf
+        vy = self.vel.y + self.acc.y*t
         speed = sqrt(self.vel.x**2 + vy**2)
         return speed
     
-    def predict_trajectory(self):
+    def predict_trajectory(self, bot_collision=False, num_inc=100):
         """
         TODO
 
@@ -175,35 +175,33 @@ class Ball(Player):
 
         """
         self.trajectory.clear()
-        h_range = self.predict_h_range()
+        xf = self.predict_h_range()
         angle = radians(self.vel.angle_to(vec(1, 0)))
         x0, y0 = self.pos.x, self.pos.y
         v = self.vel.magnitude()
         g = BALL_GRAVITY
-        buffer_rect = pg.Rect(
+        rect = pg.Rect(
             self.pos.x - self.r, self.pos.y - self.r, 
             self.r*2, self.r*2)
-        if x0 < h_range + 1:
-            x_values = range(int(x0), h_range + 1, 1)
+        if x0 < xf :
+            x_values = np.linspace(x0, xf, num_inc)
         else:
-            x_values = range(int(x0), h_range + 1, -1)
+            x_values = np.linspace(xf, x0, num_inc)
         # y = h - [(x - x0) * tan(α) - g * (x - x0)² / (2 * V₀² * cos²(α))]
         """Note: this isn't exactly the commonly used equation as the numerical value of
         the y component of the ball position firslty decreases, after collision (due to Pygame's frame). 
         Also, the shift needs to be taken into consideration (x - x0).
         """
         for x in x_values:
-            y = y0 - (x - x0) * tan(angle) + g * (x - x0)**2 / (2*v**2 * cos(angle)**2)
-            buffer_rect.center = (x, y)
+            y = y0 - (x - x0)*tan(angle) + g*(x - x0)**2 / (2*v**2 * cos(angle)**2)
+            rect.center = (x, y)
             self.trajectory.append((x, y))
             # Checks for any collision with an obstacle
-            if buffer_rect.colliderect(self.game.net):
+            if rect.colliderect(self.game.net):
                 self.game.bot.ball_landing_point = (WIDTH + NET_WIDTH)*0.5
                 return None
-            if self.circles_overlap(self.game.bot):
-                print("LUUUUU")
-
-    def predict_trajectory2(self):
+            
+    def predict_trajectory2(self, inc=0.5):
         """
         TODO
 
@@ -212,18 +210,15 @@ class Ball(Player):
 
         """
         self.trajectory.clear()
+        y = self.pos.y
         yf = HEIGHT - self.r
         tf = self.predict_time(yf)
         t = 0
         while t < tf:
-            t += 0.1
+            t += inc
             x = self.predict_x(t)
             y = self.predict_y(t)
             self.trajectory.append((x, y))
-        
-
-
-
 
 def main():
     pass

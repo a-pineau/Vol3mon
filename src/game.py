@@ -14,7 +14,7 @@ from os.path import join, dirname, abspath
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QGridLayout, QWidget, QLayout)
 
 vec = pg.math.Vector2
-
+n_snap = 0
 
 # Manually places the window
 os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (100, 50)
@@ -28,6 +28,7 @@ class Game:
         self.clock = pg.time.Clock()
         self.last_time = time.time()
         self.running = True  
+        self.record = False
         self.start_round = False
         self.stop_timer = False
         self.n_frame = 0
@@ -49,30 +50,19 @@ class Game:
         self.obstacles = pg.sprite.Group()
         self.all_sprites = pg.sprite.Group()
         # Defining sprites
+        self.net = Obstacle(self, *NET_SETTINGS) # Net
         self.player = Player(self, *PLAYER_SETTINGS) # Player
         self.ball = Ball(self, *BALL_SETTINGS) # Ball  
         self.bot = Bot(self, *BOT_SETTINGS) # Bot
-        self.net = Obstacle(self, *NET_SETTINGS) # Net
         self.moving_platform = Obstacle(self, *MOVING_PLATFORM_SETTINGS) # Moving platform
         # Adding to sprite groups
-        self.balls.add(self.ball)
-        # self.obstacles.add(self.net)
+        self.balls.add(self.player, self.bot, self.ball)
+        self.obstacles.add(self.net)
         # IDK
         # self.ball.drop()
-        # tf = self.ball.predict_time(HEIGHT - self.ball.r)
-        # print(tf)
-        # t = 0
-        # y = self.ball.pos.y
-        # x = self.ball.pos.x
-        # self.bot.predict_move()
-        # while y < 600:
-        #     d = self.ball.distance((x, y), (self.bot.spot, self.bot.pos.y))
-        #     if d < self.ball.r + self.bot.r:
-        #         print("erf =", y)
-        #         break
-        #     y = self.ball.predict_y(t)
-        #     t += 0.1
-        
+        self.bot.predict_move()
+        self.ball.predict_trajectory()
+    
     def delta_time(self):
         current_time = time.time()
         self.dt = current_time - self.last_time
@@ -149,35 +139,37 @@ class Game:
         """
         self.screen.fill(BACKGROUND)
         self.obstacles.draw(self.screen)
-        if self.start_round:
-            pass
-            # timer_font = pg.font.SysFont("Calibri", 30)
-            # timer_text = timer_font.render(f"Timer: {round(self.timer, 3)}s", True, WHITE)
-            # timer_rect = timer_text.get_rect()
-            # timer_rect.centerx = WIDTH*0.5
-            # timer_rect.centery = HEIGHT*0.4
-            # self.screen.blit(timer_text, timer_rect)
         if not self.start_round:
             self.display_message(self.screen, *START_ROUND_SETTINGS)
         self.display_infos()
-        # pg.draw.circle(self.screen, self.player.color, self.player.pos, self.player.r)
+        pg.draw.circle(self.screen, self.player.color, self.player.pos, self.player.r)
         pg.draw.circle(self.screen, self.ball.color, self.ball.pos, self.ball.r)
         pg.draw.circle(self.screen, self.bot.color, self.bot.pos, self.bot.r)  
-        for pos in self.ball.trajectory[::7]:
+        for pos in self.ball.trajectory:
             pg.draw.circle(self.screen, GREEN3, pos, 2)
+        if self.record:
+            self.record_game()
         pg.display.flip()  
 
     def display_infos(self): 
         """
         TODO
         """
-        # FPS (top-right)
+        # Player text (top-left)
+        player_font = pg.font.SysFont("Calibri", 40)
+        player_text = player_font.render("Player", True, RED)
+        player_text_rect = player_text.get_rect(topleft=(WIDTH*0.005, 5))
+        # Bot text (top-left)
+        bot_font = pg.font.SysFont("Calibri", 40)
+        bot_text = bot_font.render("Bot", True, BLUE)
+        bot_text_rect = bot_text.get_rect(topright=(WIDTH*0.995, 5))
+        # FPS (top-center)
         n_fps = int(self.clock.get_fps())
-        font_FPS = pg.font.SysFont("Calibri", 30)
-        fps_text = font_FPS.render(f"FPS: {n_fps}", True, WHITE)
+        fps_font = pg.font.SysFont("Calibri", 23)
+        fps_text = fps_font.render(f"FPS: {n_fps}", True, WHITE)
         fps_text_rect = fps_text.get_rect()
-        fps_text_rect.centerx = 60
-        fps_text_rect.top = 5
+        fps_text_rect.centerx = WIDTH*0.5
+        fps_text_rect.top = 55
         # Current score (top-center)
         score_player, score_bot = self.scores["Player"], self.scores["Bot"]
         font_scores = pg.font.SysFont("Calibri", 50)
@@ -189,8 +181,25 @@ class Game:
         scores_text_rect.centerx = WIDTH*0.5
         scores_text_rect.top = 5 
         # Drawing to screen
+        self.screen.blit(player_text, player_text_rect)
+        self.screen.blit(bot_text, bot_text_rect)
         self.screen.blit(fps_text, fps_text_rect)
         self.screen.blit(scores_text, scores_text_rect)
+
+    def record_game(self) -> None:
+        """Save a snapshot of the current screen to the SNAP_FOLDER.
+
+        Parameter
+        ---------
+        screen: pygame.Surface (required)
+            Game window
+        """
+
+        global n_snap
+        extension = "png"
+        file_name = f"snapshot_{n_snap}.{extension}"
+        pg.image.save(self.screen, os.path.join(SNAP_FOLDER, file_name))
+        n_snap += 1
 
     @staticmethod
     def display_message(screen, message, font_size, color, position):
@@ -202,11 +211,6 @@ class Game:
         text_rect = text.get_rect()
         text_rect.centerx, text_rect.top = position
         screen.blit(text, text_rect)
-
-    def save_results(self, extension="png") -> None:
-        file_name = f"snapshot_{self.n_frame}.{extension}"
-        pg.image.save(self.screen, os.path.join(SNAP_FOLDER, file_name))
-
 
 def main():
     g = Game()

@@ -109,7 +109,6 @@ class Player(pg.sprite.Sprite):
                 self.rect.bottom = HEIGHT
                 self.pos.y = self.rect.centery
                 if is_ball:
-                    print("landing vel =", self.vel.magnitude())
                     print("landing =", self.rect.centerx)
                     self.vel.y *= -1 
                 else: 
@@ -195,6 +194,8 @@ class Player(pg.sprite.Sprite):
             self.pos.y += disp * (n.y / d)
             other.pos.x -= disp * (n.x / d) 
             other.pos.y -= disp * (n.y / d)
+            # Ball trajectory
+            other.predict_trajectory()
             # Predicting bot's move
             self.game.bot.predict_move()
 
@@ -224,9 +225,10 @@ class Player(pg.sprite.Sprite):
             # Dealing with sticky collisions
             ball.pos.x -= disp*(n.x / d)
             ball.pos.y -= disp*(n.y / d)
+            # Ball trajectory
+            ball.predict_trajectory()
             # Predicting bot move 
-            # ball.predict_trajectory()
-            # bot.predict_move()
+            bot.predict_move()
 
     def end_round_conditions(self) -> bool:
         """
