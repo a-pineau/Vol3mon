@@ -94,15 +94,16 @@ class Player(pg.sprite.Sprite):
         if orientation == "horizontal":
             # Right border
             if self.rect.right > WIDTH:
-                self.game.stop_timer = True
                 self.rect.right = WIDTH
                 self.pos.x = self.rect.centerx
-                if is_ball: self.vel.x *= -1
+                if is_ball: 
+                    self.vel.x *= -1
             # Left border
             elif self.rect.left < 0:
                 self.rect.left = 0
                 self.pos.x = self.rect.centerx
-                if is_ball: self.vel.x *= -1
+                if is_ball: 
+                    self.vel.x *= -1
         if orientation == "vertical":
             # Bottom border
             if self.rect.bottom >= HEIGHT:
@@ -112,7 +113,7 @@ class Player(pg.sprite.Sprite):
                     print("landing =", self.rect.centerx)
                     self.vel.y *= -1 
                 else: 
-                    self.vel.y *= 0
+                    self.vel.y = 0
             # Top border
             elif self.rect.top < 0:
                 self.rect.top = 0
