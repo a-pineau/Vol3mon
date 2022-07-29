@@ -146,7 +146,8 @@ class Game:
         pg.draw.circle(self.screen, self.ball.color, self.ball.pos, self.ball.r)
         pg.draw.circle(self.screen, self.bot.color, self.bot.pos, self.bot.r)  
         for pos in self.ball.trajectory:
-            pg.draw.circle(self.screen, GREEN3, pos, 2)
+            pass
+            # pg.draw.circle(self.screen, GREEN3, pos, 2)
         if self.record:
             self.record_game()
         pg.display.flip()  

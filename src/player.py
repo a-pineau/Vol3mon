@@ -139,21 +139,25 @@ class Player(pg.sprite.Sprite):
                         self.old_rect.right - 1 <= sprite.old_rect.left):
                             self.rect.right = sprite.rect.left
                             self.pos.x = self.rect.centerx
-                            if is_ball: self.vel.x *= -1
+                            if is_ball: 
+                                self.vel.x *= -1
                     # Left side collision
                     if (self.rect.left <= sprite.rect.right and 
                         self.old_rect.left + 1 >= sprite.old_rect.right):
                             self.rect.left = sprite.rect.right
                             self.pos.x = self.rect.centerx
-                            if is_ball: self.vel.x *= -1
-            for sprite in collisions_sprites:
-                if orientation == "vertical":
+                            if is_ball: 
+                                self.vel.x *= -1
+                elif orientation == "vertical":
                     # Top side collision
                     if (self.rect.bottom >= sprite.rect.top and 
                         self.old_rect.bottom - 1 <= sprite.old_rect.top):
                             self.rect.bottom = sprite.rect.top
                             self.pos.y = self.rect.centery
-                            self.vel.y *= -1 if is_ball else 0
+                            if is_ball:
+                                self.vel.y *= -1
+                            else:
+                                self.vel.y = 0
                     # Bottom side collision
                     if (self.rect.top <= sprite.rect.bottom and 
                         self.old_rect.top + 1 >= sprite.old_rect.bottom):
