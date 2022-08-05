@@ -14,7 +14,7 @@ from settings import *
 vec = pg.math.Vector2
 
 class Obstacle(pg.sprite.Sprite):
-    def __init__(self, game, x, y, w, h, color, vel):
+    def __init__(self, game, x, y, w, h, color, vel=vec(0, 0)):
         pg.sprite.Sprite.__init__(self)
         self.game = game
         self.pos = vec(x, y)

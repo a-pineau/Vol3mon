@@ -81,47 +81,6 @@ class Player(pg.sprite.Sprite):
         # Can only jump on platforms or floor
         if self.is_standing(PLAYER_JUMP_TOLERANCE, True, self.game.obstacles): 
             self.vel.y = -PLAYER_Y_SPEED
-        
-    def screen_collisions(self, orientation, is_ball) -> None:
-        """
-        Deals with screen collisions (left/right/top/bottom borders)
-
-        Parameters
-        ----------
-
-        """
-        old_vel = (int(self.vel.x), int(self.vel.y))
-        if orientation == "horizontal":
-            # Right border
-            if self.rect.right > WIDTH:
-                self.rect.right = WIDTH
-                self.pos.x = self.rect.centerx
-                if is_ball: 
-                    self.vel.x *= -1
-            # Left border
-            elif self.rect.left < 0:
-                self.rect.left = 0
-                self.pos.x = self.rect.centerx
-                if is_ball: 
-                    self.vel.x *= -1
-        if orientation == "vertical":
-            # Bottom border
-            if self.rect.bottom >= HEIGHT:
-                self.rect.bottom = HEIGHT
-                self.pos.y = self.rect.centery
-                if is_ball:
-                    print("landing =", self.rect.centerx)
-                    self.vel.y *= -1 
-                else: 
-                    self.vel.y = 0
-            # Top border
-            elif self.rect.top < 0:
-                self.rect.top = 0
-                self.pos.y = self.rect.centery
-                self.vel.y *= -1
-        # Checking if a collision happened
-        if is_ball and old_vel != (int(self.vel.x), int(self.vel.y)):
-            self.game.bot.predict_move()
 
     def obstacles_collisions(self, orientation, is_ball):
         """
@@ -278,14 +237,14 @@ class Player(pg.sprite.Sprite):
         self.pos.x += self.vel.x
         self.rect.centerx = self.pos.x
         # # Screen collisions (horitonzal)
-        self.screen_collisions("horizontal", is_ball)
+        # self.screen_collisions("horizontal", is_ball)
         # Obstacles collisions (horizontal)
         self.obstacles_collisions("horizontal", is_ball)
         # Updating y pos
         self.pos.y += self.vel.y + 0.5*self.acc.y
         self.rect.centery = self.pos.y
         # Screen collisions (vertical)
-        self.screen_collisions("vertical", is_ball)
+        # self.screen_collisions("vertical", is_ball)
         # Obstacles collisions (vertical)
         self.obstacles_collisions("vertical", is_ball)       
         # Ball collision (on floor)

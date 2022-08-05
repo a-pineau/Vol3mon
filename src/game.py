@@ -11,7 +11,6 @@ from bot import Bot
 from obstacle import Obstacle
 from settings import *
 from os.path import join, dirname, abspath
-from PyQt5.QtWidgets import (QMainWindow, QApplication, QGridLayout, QWidget, QLayout)
 
 vec = pg.math.Vector2
 n_snap = 0
@@ -51,13 +50,17 @@ class Game:
         self.all_sprites = pg.sprite.Group()
         # Defining sprites
         self.net = Obstacle(self, *NET_SETTINGS) # Net
+        self.bottom = Obstacle(self, WIDTH*0.5, HEIGHT, WIDTH, 1, pg.Color("cyan"))
+        # self.top = Obstacle(self, WIDTH*0.5, 1, WIDTH-1, 1, pg.Color("cyan"))
+        self.left = Obstacle(self, -1, HEIGHT*0.5, 1, HEIGHT, pg.Color("cyan"))
+        self.right = Obstacle(self, WIDTH, HEIGHT*0.5, 1, HEIGHT, pg.Color("cyan"))
         self.player = Player(self, *PLAYER_SETTINGS) # Player
         self.ball = Ball(self, *BALL_SETTINGS) # Ball  
         self.bot = Bot(self, *BOT_SETTINGS) # Bot
         self.moving_platform = Obstacle(self, *MOVING_PLATFORM_SETTINGS) # Moving platform
         # Adding to sprite groups
-        self.balls.add(self.player, self.bot, self.ball)
-        self.obstacles.add(self.net)
+        self.balls.add(self.player)
+        self.obstacles.add(self.net, self.bottom, self.left, self.right)
         # IDK
         # self.ball.drop()
         self.bot.predict_move()
@@ -143,8 +146,8 @@ class Game:
             self.display_message(self.screen, *START_ROUND_SETTINGS)
         self.display_infos()
         pg.draw.circle(self.screen, self.player.color, self.player.pos, self.player.r)
-        pg.draw.circle(self.screen, self.ball.color, self.ball.pos, self.ball.r)
-        pg.draw.circle(self.screen, self.bot.color, self.bot.pos, self.bot.r)  
+        # pg.draw.circle(self.screen, self.ball.color, self.ball.pos, self.ball.r)
+        # pg.draw.circle(self.screen, self.bot.color, self.bot.pos, self.bot.r)  
         for pos in self.ball.trajectory:
             pass
             # pg.draw.circle(self.screen, GREEN3, pos, 2)

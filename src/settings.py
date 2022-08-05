@@ -113,6 +113,9 @@ MOVING_PLATFORM_SETTINGS = [
     MOVING_PLATFORM_VEL,
 ]
 
+# Scenery
+
+
 # MESSAGES
 # Start round
 START_ROUND_MSG = "Hit the spacebar to start"
