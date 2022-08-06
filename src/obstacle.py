@@ -14,12 +14,13 @@ from settings import *
 vec = pg.math.Vector2
 
 class Obstacle(pg.sprite.Sprite):
-    def __init__(self, game, x, y, w, h, color, vel=vec(0, 0)):
+    def __init__(self, game, x, y, w, h, color=None, vel=vec(0, 0)):
         pg.sprite.Sprite.__init__(self)
         self.game = game
         self.pos = vec(x, y)
         self.image = pg.Surface((w, h))
-        self.image.fill(color)
+        if color is not None:
+            self.image.fill(color)
         self.vel = vel
         self.rect = self.image.get_rect()
         self.rect.center = self.pos

@@ -8,8 +8,7 @@ import random
 import numpy as np
 
 from player import Player
-from math import (cos, degrees, sin, tan, acos, 
-                  atan, atan2, pi, radians, sqrt)
+from math import cos, sin, acos, atan, pi, radians, sqrt
 from itertools import cycle
 from settings import *
 vec = pg.math.Vector2
@@ -17,7 +16,6 @@ vec = pg.math.Vector2
 class Ball(Player):
     def __init__(self, game, r, x, y, vel, acc, color):
         super().__init__(game, r, x, y, vel, acc, color)
-        self.trajectory = []
         self.best_angle = None
 
     def drop(self):
@@ -39,8 +37,42 @@ class Ball(Player):
         v = self.vel.magnitude()
         self.vel.x = v * cos(angle)
         self.vel.y = v * -sin(angle)
+
+    def predict_trajectory(self, inc=0.5):
+        """
+        TODO
+
+        Parameters
+        ----------
+
+        """
+        yf = HEIGHT - self.r
+        tf = self.predict_time(yf)
+        # We're creating a fake ball thats not gonna be displayed
+        fake_ball = Ball(
+            self.game, 
+            BALL_RADIUS,
+            self.pos.x,
+            self.pos.y,
+            vec(self.vel.x, self.vel.y),
+            vec(0, BALL_GRAVITY),
+            BALL_COLOR
+        )
+        obstacles = pg.sprite.Group()
+        obstacles.add(self.game.left, self.game.right, self.game.top, self.game.net)
+        t = 0
+        while t < tf:
+            x, y = self.predict_x(t), self.predict_y(t)
+            fake_ball.pos.x, fake_ball.pos.y = x, y
+            fake_ball.rect.center = (x, y)
+            collision = pg.sprite.spritecollide(fake_ball, obstacles, False)
+            if collision:
+                fake_ball.vel = vec(-self.vel.x, fake_ball.predict_vy(self.vel.y, t))
+                return fake_ball.predict_range()
+            t += inc
+        return x
         
-    def predict_h_range(self, angle=None):
+    def predict_range(self):
         """
         Predicts horizontal range.
         Eq: hR = V₀ * cos(α) * [V₀ * sin(α) + √((V₀ * sin(α))² + 2 * g * h)] / g
@@ -51,20 +83,18 @@ class Ball(Player):
         Returns
         -------
         """
-        if not angle:
-            angle = radians(self.vel.angle_to(vec(1, 0)))
+        angle = radians(self.vel.angle_to(vec(1, 0)))
         x0 = self.pos.x
         y0 = HEIGHT - self.pos.y - self.r
         v = self.vel.magnitude()
         g = BALL_GRAVITY
-        r = v * cos(angle) 
-        r *= v * sin(angle) + sqrt((v * sin(angle))**2 + 2 * g * y0)
+        r = v*cos(angle) 
+        r *= v*sin(angle) + sqrt((v*sin(angle))**2 + 2*g*y0)
         r /= g
         r += x0
-        print("range =", r)
         return int(r)
 
-    def predict_x(self, tf):
+    def predict_x(self, t):
         """
         TODO
 
@@ -74,9 +104,9 @@ class Ball(Player):
         Returns
         -------
         """
-        if tf: 
+        if t is not None:
             x0 = self.pos.x
-            return x0 + self.vel.x*tf
+            return x0 + self.vel.x*t
 
     def predict_y(self, t):
         """
@@ -93,7 +123,8 @@ class Ball(Player):
             g = BALL_GRAVITY
             return y0 + self.vel.y*t + g*0.5*t**2
 
-    def predict_angle(self, x0, xf, y0=None, v=None):
+    # Not used (yet?)
+    def predict_angle(self, x0, xf):
         """
         TODO
 
@@ -103,17 +134,14 @@ class Ball(Player):
         Returns
         -------
         """
-        if not y0: 
-            y0 = HEIGHT - self.pos.y - self.r
-        if not v: 
-            v = self.vel.magnitude()
+        y0 = HEIGHT - self.pos.y - self.r
+        v = self.vel.magnitude()
         g = BALL_GRAVITY
-        # print("y0 =", y0, "x0 =", x0, "xf =", xf, "g =", g, "v =", v)
         try:
             c1 = (g*(xf-x0)**2/v**2 - y0) / sqrt(y0**2 + (xf-x0)**2)
             c1 = acos(c1)
         except ValueError:
-            # print("Impossible to reach!")
+            print("Impossible to reach!")
             return None
         else:
             c2 = atan(abs(xf-x0) / y0)
@@ -151,7 +179,7 @@ class Ball(Player):
                 return t1
             return t2
 
-    def predict_speed(self, t):
+    def predict_vy(self, vy_init, t):
         """
         Predicts speed.
 
@@ -161,64 +189,9 @@ class Ball(Player):
         Returns
         -------
         """
-        vy = self.vel.y + self.acc.y*t
-        speed = sqrt(self.vel.x**2 + vy**2)
-        return speed
+        vy = vy_init + self.acc.y*t
+        return vy
                 
-    def predict_trajectory(self, inc=0.5):
-        """
-        TODO
-
-        Parameters
-        ----------
-
-        """
-        self.trajectory.clear()
-        y = self.pos.y
-        yf = HEIGHT - self.r
-        tf = self.predict_time(yf)
-        t = 0
-        while t < tf:
-            t += inc
-            x = self.predict_x(t)
-            y = self.predict_y(t)
-            self.trajectory.append((x, y))
-
-    # def predict_trajectory(self, bot_collision=False, num_inc=100):
-    #     """
-    #     TODO
-
-    #     Parameters
-    #     ----------
-
-    #     """
-    #     self.trajectory.clear()
-    #     xf = self.predict_h_range()
-    #     angle = radians(self.vel.angle_to(vec(1, 0)))
-    #     x0, y0 = self.pos.x, self.pos.y
-    #     v = self.vel.magnitude()
-    #     g = BALL_GRAVITY
-    #     rect = pg.Rect(
-    #         self.pos.x - self.r, self.pos.y - self.r, 
-    #         self.r*2, self.r*2)
-    #     if x0 < xf :
-    #         x_values = np.linspace(x0, xf, num_inc)
-    #     else:
-    #         x_values = np.linspace(xf, x0, num_inc)
-    #     # y = h - [(x - x0) * tan(α) - g * (x - x0)² / (2 * V₀² * cos²(α))]
-    #     """Note: this isn't exactly the commonly used equation as the numerical value of
-    #     the y component of the ball position firslty decreases, after collision (due to Pygame's frame). 
-    #     Also, the shift needs to be taken into consideration (x - x0).
-    #     """
-    #     for x in x_values:
-    #         y = y0 - (x - x0)*tan(angle) + g*(x - x0)**2 / (2*v**2 * cos(angle)**2)
-    #         rect.center = (x, y)
-    #         self.trajectory.append((x, y))
-    #         # Checks for any collision with an obstacle
-    #         if rect.colliderect(self.game.net):
-    #             self.game.bot.ball_landing_point = (WIDTH + NET_WIDTH)*0.5
-    #             return None
-
 def main():
     pass
 

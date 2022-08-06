@@ -34,8 +34,15 @@ class Game:
         self.scores = {"Player": 0, "Bot": 0}
     
     def new(self):
-        # Start a new game
-        # Folder where the imgs are saved
+        """
+        TODO
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
         try:
             os.makedirs(SNAP_FOLDER)
         except FileExistsError:
@@ -48,23 +55,32 @@ class Game:
         self.balls = pg.sprite.Group()
         self.obstacles = pg.sprite.Group()
         self.all_sprites = pg.sprite.Group()
-        # Defining sprites
-        self.net = Obstacle(self, *NET_SETTINGS) # Net
-        self.bottom = Obstacle(self, WIDTH*0.5, HEIGHT, WIDTH, 1, pg.Color("cyan"))
-        # self.top = Obstacle(self, WIDTH*0.5, 1, WIDTH-1, 1, pg.Color("cyan"))
-        self.left = Obstacle(self, -1, HEIGHT*0.5, 1, HEIGHT, pg.Color("cyan"))
-        self.right = Obstacle(self, WIDTH, HEIGHT*0.5, 1, HEIGHT, pg.Color("cyan"))
+        # Defining balls
         self.player = Player(self, *PLAYER_SETTINGS) # Player
         self.ball = Ball(self, *BALL_SETTINGS) # Ball  
         self.bot = Bot(self, *BOT_SETTINGS) # Bot
-        self.moving_platform = Obstacle(self, *MOVING_PLATFORM_SETTINGS) # Moving platform
+        # Defining obstacles
+        self.net = Obstacle(self, *NET_SETTINGS) # Net
+        self.bottom = Obstacle(self, WIDTH*0.5, HEIGHT, WIDTH, 1) # Bottom border
+        self.top = Obstacle(self, WIDTH*0.5, 1, WIDTH-1, 1) # Top border
+        self.left = Obstacle(self, -1, HEIGHT*0.5, 1, HEIGHT) # Left border
+        self.right = Obstacle(self, WIDTH, HEIGHT*0.5, 1, HEIGHT) # Right border
         # Adding to sprite groups
-        self.balls.add(self.player)
-        self.obstacles.add(self.net, self.bottom, self.left, self.right)
-        # IDK
-        # self.ball.drop()
+        self.balls.add(
+            self.player, 
+            self.ball,
+            self.bot,
+        )
+        self.obstacles.add(
+            self.net, 
+            self.bottom, 
+            self.top, 
+            self.left,  
+            self.right,
+        )
+        # Doing the first ball drop
+        self.ball.drop()
         self.bot.predict_move()
-        self.ball.predict_trajectory()
     
     def delta_time(self):
         current_time = time.time()
@@ -72,7 +88,15 @@ class Game:
         self.last_time = current_time
     
     def run(self):
-        # Game loop
+        """
+        TODO
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
         self.playing = True
         ball_init = cycle([BOT_INIT_X, PLAYER_INIT_X])
         while self.playing: 
@@ -84,7 +108,15 @@ class Game:
             self.display()
     
     def update(self, ball_init):
-        # Game loop update
+        """
+        TODO
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
         if self.start_round:
             if not self.stop_timer: 
                 self.timer += self.dt
@@ -92,13 +124,20 @@ class Game:
             self.obstacles.update()
             for sprite in self.balls.sprites():
                 if sprite.end_round_conditions():
-                    pass
-                    # self.start_round = False
-                    # self.initialize_round(next(ball_init))
-                    # return None
+                    self.start_round = False
+                    self.setup_round(next(ball_init))
+                    return None
                     
     def events(self):
-        # Game loop - events
+        """
+        TODO
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 if self.playing:
@@ -120,6 +159,11 @@ class Game:
         """
         TODO
         """
+        # Ball game
+        self.ball.pos.x = ball_init_x
+        self.ball.pos.y = BALL_INIT_Y
+        self.ball.vel = vec(BALL_INIT_VEL_X, BALL_INIT_VEL_Y)
+        self.ball.drop() 
         # Player
         self.player.pos.x = PLAYER_INIT_X
         self.player.pos.y = PLAYER_INIT_Y
@@ -128,29 +172,25 @@ class Game:
         self.bot.pos.x = BOT_INIT_X
         self.bot.pos.y = BOT_INIT_Y
         self.bot.vel = vec(0, 0)
-        self.bot.spot = None
-        self.bot.direction = 0
-        # Ball game
-        self.ball.pos.x = ball_init_x
-        self.ball.pos.y = BALL_INIT_Y
-        self.ball.vel = vec(BALL_INIT_VEL_X, BALL_INIT_VEL_Y)
-        self.ball.drop()
+        self.bot.predict_move()
                              
     def display(self):
         """
         TODO
+
+        Parameters
+        ----------
+
+        Returns
+        -------
         """
         self.screen.fill(BACKGROUND)
+        for ball in self.balls.sprites():
+            pg.draw.circle(self.screen, ball.color, ball.pos, ball.r)
         self.obstacles.draw(self.screen)
         if not self.start_round:
             self.display_message(self.screen, *START_ROUND_SETTINGS)
         self.display_infos()
-        pg.draw.circle(self.screen, self.player.color, self.player.pos, self.player.r)
-        # pg.draw.circle(self.screen, self.ball.color, self.ball.pos, self.ball.r)
-        # pg.draw.circle(self.screen, self.bot.color, self.bot.pos, self.bot.r)  
-        for pos in self.ball.trajectory:
-            pass
-            # pg.draw.circle(self.screen, GREEN3, pos, 2)
         if self.record:
             self.record_game()
         pg.display.flip()  
@@ -158,6 +198,12 @@ class Game:
     def display_infos(self): 
         """
         TODO
+
+        Parameters
+        ----------
+
+        Returns
+        -------
         """
         # Player text (top-left)
         player_font = pg.font.SysFont("Calibri", 40)

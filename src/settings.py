@@ -4,7 +4,7 @@ import pygame as pg
 vec = pg.math.Vector2
 
 # Main window 
-TITLE = "v0lem0n"
+TITLE = "Vol3mon"
 WIDTH = 1200
 HEIGHT = 600
 FPS = 60
@@ -64,11 +64,11 @@ BOT_SETTINGS = [
 
 # Ball game
 BALL_GRAVITY = 0.3
-BALL_RADIUS = 45
-BALL_INIT_X = BOT_INIT_X # Human player always starts
+BALL_RADIUS = 50
+BALL_INIT_X = PLAYER_INIT_X # Human player always starts
 BALL_INIT_Y = HEIGHT*0.2 # Arbitrary
-BALL_INIT_VEL_X = -2
-BALL_INIT_VEL_Y = 0
+BALL_INIT_VEL_X = 3
+BALL_INIT_VEL_Y = 2
 BALL_INIT_VEL = vec(BALL_INIT_VEL_X, BALL_INIT_VEL_Y)
 BALL_INIT_ACC = vec(0, BALL_GRAVITY)
 BALL_COLOR = YELLOW
