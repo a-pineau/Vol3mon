@@ -53,11 +53,11 @@ class Player(pg.sprite.Sprite):
         self.rect.bottom += tolerance
         obstacles = pg.sprite.Group()
         obstacles.add(self.game.bottom, self.game.net)
+        # Checking for collisions with the given obstacles
         collisions_sprites = pg.sprite.spritecollide(self, obstacles, False)
         if collisions_sprites:
             for sprite in collisions_sprites:
-                if (self.rect.bottom >= sprite.rect.top and 
-                        self.old_rect.bottom - 1 <= sprite.old_rect.top):
+                if self.rect.bottom >= sprite.rect.top:
                     standing = True
                     break
         self.rect.bottom -= tolerance

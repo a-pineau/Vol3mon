@@ -68,8 +68,6 @@ class Game:
         # Adding to sprite groups
         self.balls.add(
             self.player, 
-            self.ball,
-            self.bot,
         )
         self.obstacles.add(
             self.net, 
