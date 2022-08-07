@@ -27,9 +27,9 @@ class Bot(Player):
         Parameters
         ----------
         """
-        self.spot = self.game.ball.predict_trajectory()
-        if self.spot and self.is_in_bot_zone(self.spot):
-            # self.spot = ball_spot + self.ball.r + self.r*0.25
+        ball_spot = self.game.ball.predict_trajectory()
+        if ball_spot and self.is_in_bot_zone(ball_spot):
+            self.spot = ball_spot + self.r*0.25
             self.direction = 1 if self.spot > self.pos.x else -1
 
     def update(self):
@@ -59,7 +59,7 @@ class Bot(Player):
             # Obstacles collisions (vertical)
             self.obstacles_collisions("vertical", False) 
             # Ball collision (on floor)
-        if self.is_standing():
+        if self.is_standing([self.game.bottom]):
             self.on_floor_ball_collision()
 
     def drunk_mode(self):

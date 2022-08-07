@@ -30,6 +30,7 @@ class Game:
         self.record = False
         self.start_round = False
         self.stop_timer = False
+        self.anticipate = False
         self.n_frame = 0
         self.scores = {"Player": 0, "Bot": 0}
     
@@ -62,12 +63,14 @@ class Game:
         # Defining obstacles
         self.net = Obstacle(self, *NET_SETTINGS) # Net
         self.bottom = Obstacle(self, WIDTH*0.5, HEIGHT, WIDTH, 1) # Bottom border
-        self.top = Obstacle(self, WIDTH*0.5, 1, WIDTH-1, 1) # Top border
+        self.top = Obstacle(self, WIDTH*0.5, 1, WIDTH - 1, 1) # Top border
         self.left = Obstacle(self, -1, HEIGHT*0.5, 1, HEIGHT) # Left border
         self.right = Obstacle(self, WIDTH, HEIGHT*0.5, 1, HEIGHT) # Right border
         # Adding to sprite groups
         self.balls.add(
             self.player, 
+            self.bot,
+            self.ball,
         )
         self.obstacles.add(
             self.net, 

@@ -39,7 +39,7 @@ class Player(pg.sprite.Sprite):
         """
         return self.pos.distance_to(other.pos) < self.r + other.r
 
-    def is_standing(self, tolerance=1) -> bool:
+    def is_standing(self, obstacles, tolerance=1) -> bool:
         """
         TODO
 
@@ -51,8 +51,8 @@ class Player(pg.sprite.Sprite):
         """
         standing = False
         self.rect.bottom += tolerance
-        obstacles = pg.sprite.Group()
-        obstacles.add(self.game.bottom, self.game.net)
+        sprites = pg.sprite.Group()
+        sprites.add(*obstacles)
         # Checking for collisions with the given obstacles
         collisions_sprites = pg.sprite.spritecollide(self, obstacles, False)
         if collisions_sprites:
@@ -96,7 +96,7 @@ class Player(pg.sprite.Sprite):
        
     def jump(self) -> None:  
         # Can only jump on platforms or floor
-        if self.is_standing(PLAYER_JUMP_TOLERANCE): 
+        if self.is_standing([self.game.bottom, self.game.net], PLAYER_JUMP_TOLERANCE): 
             self.vel.y = -PLAYER_Y_SPEED
 
     def obstacles_collisions(self, orientation, is_ball):
@@ -133,6 +133,7 @@ class Player(pg.sprite.Sprite):
                         self.pos.y = self.rect.centery
                         if is_ball:
                             self.vel.y *= -1
+                            print("LANDING", self.rect.centerx)
                         else:
                             self.vel.y = 0
                     # Top
@@ -152,7 +153,10 @@ class Player(pg.sprite.Sprite):
         Parameters
         ----------
         """
-        balls_in_the_air = not self.is_standing() and not other.is_standing()
+        balls_in_the_air = (
+            not self.is_standing([self.game.bottom]) 
+            and not other.is_standing([self.game.bottom])
+        )
         if self.overlap(other) and balls_in_the_air: 
             x1, x2 = self.pos, other.pos
             m1, m2 = self.r**2, other.r**2
@@ -168,6 +172,8 @@ class Player(pg.sprite.Sprite):
             n_v2 = v2 - 2*m1 / M * vec.dot(v2-v1, x2-x1) * (x2-x1) / d**2
             self.vel = n_v1
             other.vel = n_v2
+            # Limiting speed if it gets too high
+            other.limit_speed()
             # Dealing with sticky collisions issues
             self.pos.x += disp * (n.x / d)
             self.pos.y += disp * (n.y / d)
@@ -218,7 +224,7 @@ class Player(pg.sprite.Sprite):
         """
         # If the ball hits the floor and is in the player/bot zone
         if self == self.game.ball:
-            if self.is_standing():
+            if self.is_standing([self.game.bottom]):
                 if self.is_in_bot_zone(self.rect.left):
                     self.game.scores["Player"] += 1
                 elif self.is_in_player_zone(self.rect.right):
@@ -264,7 +270,7 @@ class Player(pg.sprite.Sprite):
         # Obstacles collisions (vertical)
         self.obstacles_collisions("vertical", is_ball)       
         # Ball collision (on floor)
-        if not is_ball and self.is_standing():
+        if not is_ball and self.is_standing([self.game.bottom]):
             self.on_floor_ball_collision()
         else:
             particles = self.game.balls.sprites()

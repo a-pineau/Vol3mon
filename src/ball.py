@@ -18,12 +18,17 @@ class Ball(Player):
         super().__init__(game, r, x, y, vel, acc, color)
         self.best_angle = None
 
+    def limit_speed(self):
+        if self.vel.magnitude() > BALL_MAX_SPEED:
+            angle = radians(self.vel.angle_to(vec(1, 0)))
+            self.vel.x = BALL_MAX_SPEED*cos(angle)
+            self.vel.y = BALL_MAX_SPEED*-sin(angle)
+
     def drop(self):
         """
         TODO
         """
         angle = None
-        xi = self.pos.x
         while not angle:
             if self.pos.x < WIDTH*0.5:
                 x0 = PLAYER_RADIUS
@@ -32,11 +37,11 @@ class Ball(Player):
                 x0 = (WIDTH + NET_WIDTH)*0.5 + BOT_RADIUS
                 x1 = WIDTH - BOT_RADIUS
             xf = random.randint(x0, x1)
-            angle = self.predict_angle(xi, xf)
+            angle = self.predict_angle(xf)
         # Setting new velocity
         v = self.vel.magnitude()
-        self.vel.x = v * cos(angle)
-        self.vel.y = v * -sin(angle)
+        self.vel.x = v*cos(angle)
+        self.vel.y = v*-sin(angle)
 
     def predict_trajectory(self, inc=0.5):
         """
@@ -59,7 +64,7 @@ class Ball(Player):
             BALL_COLOR
         )
         obstacles = pg.sprite.Group()
-        obstacles.add(self.game.left, self.game.right, self.game.top, self.game.net)
+        obstacles.add(self.game.net, self.game.top, self.game.right)
         t = 0
         while t < tf:
             x, y = self.predict_x(t), self.predict_y(t)
@@ -68,11 +73,11 @@ class Ball(Player):
             collision = pg.sprite.spritecollide(fake_ball, obstacles, False)
             if collision:
                 fake_ball.vel = vec(-self.vel.x, fake_ball.predict_vy(self.vel.y, t))
-                return fake_ball.predict_range()
+                return fake_ball.predict_range(0)
             t += inc
         return x
         
-    def predict_range(self):
+    def predict_range(self, yf):
         """
         Predicts horizontal range.
         Eq: hR = V₀ * cos(α) * [V₀ * sin(α) + √((V₀ * sin(α))² + 2 * g * h)] / g
@@ -89,7 +94,7 @@ class Ball(Player):
         v = self.vel.magnitude()
         g = BALL_GRAVITY
         r = v*cos(angle) 
-        r *= v*sin(angle) + sqrt((v*sin(angle))**2 + 2*g*y0)
+        r *= v*sin(angle) + sqrt((v*sin(angle))**2 + 2*g*abs((yf-y0)))
         r /= g
         r += x0
         return int(r)
@@ -124,7 +129,7 @@ class Ball(Player):
             return y0 + self.vel.y*t + g*0.5*t**2
 
     # Not used (yet?)
-    def predict_angle(self, x0, xf):
+    def predict_angle(self, xf):
         """
         TODO
 
@@ -134,6 +139,7 @@ class Ball(Player):
         Returns
         -------
         """
+        x0 = self.pos.x
         y0 = HEIGHT - self.pos.y - self.r
         v = self.vel.magnitude()
         g = BALL_GRAVITY
@@ -141,7 +147,6 @@ class Ball(Player):
             c1 = (g*(xf-x0)**2/v**2 - y0) / sqrt(y0**2 + (xf-x0)**2)
             c1 = acos(c1)
         except ValueError:
-            print("Impossible to reach!")
             return None
         else:
             c2 = atan(abs(xf-x0) / y0)
